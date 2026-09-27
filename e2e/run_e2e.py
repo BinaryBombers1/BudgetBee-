@@ -16,6 +16,8 @@ Run:
 Phases:
   public       landing sitemap, auth guard redirect, wrong-password rejection
   login        demo student login + dashboard overview (greeting, stat cards, tips)
+  voice        voice mic + language chips on /transactions/new, mic tap recovery,
+               language chip label swap, flag-off hides the mic
   addincome    Add income -> prefilled new-transaction page, AI suggestion
                ignore/accept cycle, save + toast + redirect
   transactions search filter, edit flow, recently-viewed card, delete dialog
@@ -907,11 +909,55 @@ def ph_cleanup(c: Ctx):
         os.remove(csv_path)
 
 
+def ph_voice(c: Ctx):
+    p = c.page
+    c.phase = "voice"
+
+    with c.step("mic + language chips render on /transactions/new"):
+        goto(p, "/transactions/new")
+        p.evaluate(
+            "() => { localStorage.removeItem('cc_voice'); localStorage.setItem('cc_voice_lang','en'); }"
+        )
+        goto(p, "/transactions/new")
+        wait_visible(p.get_by_label("Start voice entry"), timeout=20000)
+        wait_visible(p.get_by_role("button", name="বাংলা"))
+        wait_visible(p.get_by_role("button", name="اردو"))
+        wait_visible(p.get_by_text('Try "120 taka for lunch"'))
+        assert p.get_by_label("Amount").is_visible()
+
+    with c.step("tap mic -> listening state or friendly recovery (never a crash)"):
+        p.get_by_label("Start voice entry").click()
+        banner = p.get_by_text(
+            re.compile(r"Mic blocked|Voice needs internet|Didn't catch that|No microphone|Voice input isn't supported|Couldn't start")
+        )
+        try:
+            wait_visible(banner, timeout=8000)
+        except Exception:
+            # headless kept listening (or is still deciding) -> exercise the stop path
+            wait_visible(p.get_by_label("Stop listening"), timeout=4000)
+            p.get_by_label("Stop listening").click()
+            wait_visible(p.get_by_label("Start voice entry"), timeout=8000)
+
+    with c.step("language chip switches the mic label"):
+        goto(p, "/transactions/new")
+        p.get_by_role("button", name="বাংলা").click()
+        wait_visible(p.get_by_label("ভয়েস এন্ট্রি শুরু করুন"))
+        p.evaluate("() => localStorage.setItem('cc_voice_lang','en')")
+
+    with c.step("flag off hides the mic entirely"):
+        p.evaluate("() => localStorage.setItem('cc_voice','0')")
+        goto(p, "/transactions/new")
+        assert p.get_by_label("Start voice entry").count() == 0
+        assert p.get_by_label("ভয়েস এন্ট্রি শুরু করুন").count() == 0
+        p.evaluate("() => localStorage.removeItem('cc_voice')")
+
+
 # ------------------------------------------------------------------ main ----
 
 PHASES = [
     ("public", ph_public),
     ("login", ph_login),
+    ("voice", ph_voice),
     ("addincome", ph_addincome),
     ("transactions", ph_transactions),
     ("budgets", ph_budgets),

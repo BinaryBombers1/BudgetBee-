@@ -7,6 +7,8 @@ import { Save, ArrowLeft, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useUIStore } from "@/store/ui";
+import { useVoiceSupport } from "@/hooks/useVoiceSupport";
+import { MicButton } from "@/components/voice/MicButton";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -16,6 +18,7 @@ import { cn } from "@/lib/utils";
 export default function NewTransactionPage() {
   const router = useRouter();
   const addToast = useUIStore((s) => s.addToast);
+  const voiceOn = useVoiceSupport();
 
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({
@@ -102,27 +105,27 @@ export default function NewTransactionPage() {
     setAiAccepted(false);
   }
 
-  async function onSubmit(e) {
-    e.preventDefault();
-    if (!form.amount || Number(form.amount) <= 0) {
+  async function submitWith(values) {
+    if (!values.amount || Number(values.amount) <= 0) {
       addToast({ type: "error", message: "Enter a valid amount" });
-      return;
+      return { ok: false, message: "Enter a valid amount" };
     }
-    if (!form.categoryId) {
+    if (!values.categoryId) {
       addToast({ type: "error", message: "Select a category" });
-      return;
+      return { ok: false, message: "Select a category" };
     }
 
     setLoading(true);
     try {
       const res = await api.post("/transactions", {
-        type: form.type,
-        amount: Number(form.amount),
-        categoryId: form.categoryId,
-        note: form.note,
-        date: new Date(form.date).toISOString(),
-        isRecurring: form.isRecurring,
-        recurringDay: form.isRecurring && form.recurringDay ? Number(form.recurringDay) : undefined,
+        type: values.type,
+        amount: Number(values.amount),
+        categoryId: values.categoryId,
+        note: values.note,
+        date: new Date(values.date).toISOString(),
+        isRecurring: values.isRecurring,
+        recurringDay:
+          values.isRecurring && values.recurringDay ? Number(values.recurringDay) : undefined,
         aiSuggested: aiAccepted && !!aiSuggest?.aiSuggested,
       });
 
@@ -138,11 +141,45 @@ export default function NewTransactionPage() {
         addToast({ type: "success", message: "Transaction added" });
       }
       router.push("/transactions");
+      return { ok: true };
     } catch (e) {
       addToast({ type: "error", message: e.message });
+      return { ok: false, message: e.message };
     } finally {
       setLoading(false);
     }
+  }
+
+  function onSubmit(e) {
+    e.preventDefault();
+    submitWith(form);
+  }
+
+  function applyVoice(vEntry, { submit } = {}) {
+    const type = vEntry.type === "income" ? "income" : "expense";
+    const match = categories.find(
+      (c) => c.type === type && c.name.toLowerCase() === String(vEntry.category || "").toLowerCase()
+    );
+    const next = {
+      ...form,
+      type,
+      amount: vEntry.amount != null ? String(vEntry.amount) : form.amount,
+      categoryId: match?._id || "",
+      note: vEntry.note || form.note,
+    };
+    setForm(next);
+    if (!submit) {
+      addToast({ type: "success", message: "Voice filled the form — review & save" });
+      return { ok: true };
+    }
+    if (!match) {
+      addToast({
+        type: "warning",
+        message: "Voice category isn't in your list — pick one, then save",
+      });
+      return { ok: false, message: "Category not found in your list" };
+    }
+    return submitWith(next);
   }
 
   return (
@@ -208,6 +245,8 @@ export default function NewTransactionPage() {
             value={form.amount}
             onChange={(e) => setForm({ ...form, amount: e.target.value })}
           />
+
+          {voiceOn && <MicButton onApply={applyVoice} />}
 
           <Select
             label="Category"
