@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Save, ArrowLeft, Sparkles } from "lucide-react";
@@ -105,6 +105,8 @@ export default function NewTransactionPage() {
     setAiAccepted(false);
   }
 
+  const savingRef = useRef(false);
+
   async function submitWith(values) {
     if (!values.amount || Number(values.amount) <= 0) {
       addToast({ type: "error", message: "Enter a valid amount" });
@@ -114,6 +116,10 @@ export default function NewTransactionPage() {
       addToast({ type: "error", message: "Select a category" });
       return { ok: false, message: "Select a category" };
     }
+    /* re-entrancy guard: a double-tap (or a stray native submit) must never
+       create the same transaction twice */
+    if (savingRef.current) return { ok: false, message: "Already saving" };
+    savingRef.current = true;
 
     setLoading(true);
     try {
@@ -146,6 +152,7 @@ export default function NewTransactionPage() {
       addToast({ type: "error", message: e.message });
       return { ok: false, message: e.message };
     } finally {
+      savingRef.current = false;
       setLoading(false);
     }
   }

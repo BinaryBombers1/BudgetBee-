@@ -35,10 +35,10 @@ export function VoiceChips({ entry, raw, onConfirm, onEdit, onDiscard, busy }) {
         )}
       </div>
       <div className="flex items-center gap-2">
-        <Button size="sm" onClick={onConfirm} isLoading={busy} disabled={busy}>
+        <Button type="button" size="sm" onClick={onConfirm} isLoading={busy} disabled={busy}>
           <Check className="h-3.5 w-3.5" /> Confirm
         </Button>
-        <Button size="sm" variant="ghost" onClick={onEdit} disabled={busy}>
+        <Button type="button" size="sm" variant="ghost" onClick={onEdit} disabled={busy}>
           <Pencil className="h-3.5 w-3.5" /> Edit
         </Button>
         <button

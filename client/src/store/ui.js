@@ -5,7 +5,7 @@ import { persist } from "zustand/middleware";
 
 export const useUIStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       theme: "dark",
       fontSize: "md",
       sidebarOpen: true,
@@ -25,6 +25,11 @@ export const useUIStore = create(
           duration: 4000,
           ...toast,
         };
+        /* same message already on screen (e.g. HTTP alert + its socket
+           notification twin) -> don't stack a duplicate */
+        if (item.message && get().toasts.some((t) => t.message === item.message)) {
+          return id;
+        }
         set((s) => ({ toasts: [...s.toasts, item] }));
         if (item.duration > 0) {
           setTimeout(() => {

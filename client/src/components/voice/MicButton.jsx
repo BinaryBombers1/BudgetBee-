@@ -118,10 +118,14 @@ export function MicButton({ onApply }) {
   }
 
   function confirmEntry() {
-    Promise.resolve(onApply?.(entry, { submit: true })).then((r) => {
-      if (r?.ok !== false) reset();
-      else setNote(r.message || "Couldn't save — pick a category, then save.");
-    });
+    if (busy) return;
+    setBusy(true);
+    Promise.resolve(onApply?.(entry, { submit: true }))
+      .then((r) => {
+        if (r?.ok !== false) reset();
+        else setNote(r.message || "Couldn't save — pick a category, then save.");
+      })
+      .finally(() => setBusy(false));
   }
 
   function editEntry() {
