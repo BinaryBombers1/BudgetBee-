@@ -83,6 +83,41 @@ body {
   }
 }
 
+/* Glowing comet segment chasing the bee around the waggle track */
+@keyframes bee-comet-run {
+  to {
+    stroke-dashoffset: calc(var(--bee-len, 900) * -1);
+  }
+}
+
+.bee-comet {
+  animation: bee-comet-run var(--bee-dur, 4.4s) linear infinite;
+}
+
+/* Bee flight along the figure-8 waggle path (native CSS — runs pre-hydration) */
+@keyframes bee-fly {
+  from {
+    offset-distance: 0%;
+  }
+  to {
+    offset-distance: 100%;
+  }
+}
+
+.bee-flyer {
+  animation: bee-fly var(--bee-dur, 4.4s) linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bee-flyer {
+    animation: none;
+    offset-distance: 50%;
+  }
+  .bee-comet {
+    animation: none;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

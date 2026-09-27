@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
 import { useUIStore } from "@/store/ui";
@@ -10,7 +10,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { Toaster } from "@/components/ui/Toaster";
 import { ChatWidget } from "@/components/ai/ChatWidget";
 import { useSocket } from "@/hooks/useSocket";
-import { BeeLoader } from "@/components/ui/BeeLoader";
+import { BeeLoader, MIN_LOADER_MS } from "@/components/ui/BeeLoader";
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
@@ -20,24 +20,30 @@ export default function DashboardLayout({ children }) {
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
 
   const isAdminArea = pathname === "/admin" || pathname.startsWith("/admin/");
+  const [minTimeUp, setMinTimeUp] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMinTimeUp(true), MIN_LOADER_MS);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (!initialized) init();
   }, [initialized, init]);
 
   useEffect(() => {
-    if (initialized && !loading && !user) {
+    if (minTimeUp && initialized && !loading && !user) {
       router.replace(`/login?next=${encodeURIComponent(pathname)}`);
     }
-  }, [initialized, loading, user, router, pathname]);
+  }, [minTimeUp, initialized, loading, user, router, pathname]);
 
   useEffect(() => {
-    if (initialized && !loading && user && isAdminArea && user.role !== "admin") {
+    if (minTimeUp && initialized && !loading && user && isAdminArea && user.role !== "admin") {
       router.replace("/dashboard");
     }
-  }, [initialized, loading, user, isAdminArea, router]);
+  }, [minTimeUp, initialized, loading, user, isAdminArea, router]);
 
-  if (!initialized || loading || !user) {
+  if (!initialized || loading || !user || !minTimeUp) {
     return <BeeLoader full />;
   }
 

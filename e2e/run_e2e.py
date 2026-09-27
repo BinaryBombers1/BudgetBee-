@@ -231,6 +231,19 @@ def ph_public(c: Ctx):
         assert "bee-track" in r.text, "dashed flight track missing from SSR boot HTML"
         assert "Waking up BudgetBee" in r.text, "loader message missing from SSR boot HTML"
 
+    with c.step("bee actually flies along the waggle track"):
+        goto(p, "/dashboard")
+        wait_visible(p.locator(".bee-flyer"), timeout=15000)
+        d1 = p.evaluate(
+            "getComputedStyle(document.querySelector('.bee-flyer')).offsetDistance"
+        )
+        p.wait_for_timeout(500)
+        d2 = p.evaluate(
+            "getComputedStyle(document.querySelector('.bee-flyer')).offsetDistance"
+        )
+        assert d1 != d2, f"bee not moving (offsetDistance stuck at {d1})"
+        p.wait_for_url("**/login**", timeout=15000)
+
     with c.step("landing renders + sitemap section"):
         goto(p, "/")
         wait_visible(p.get_by_text("Campus Coin", exact=False))
