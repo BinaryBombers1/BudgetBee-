@@ -105,7 +105,6 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     );
   }
 
-  // Dry check only — the pending record and OTP stay valid for the final register call.
   return sendSuccess(res, null, "Email verified");
 });
 
@@ -180,7 +179,6 @@ export const login = asyncHandler(async (req, res) => {
   return sendSuccess(res, { user: user.toSafeJSON(), ...tokens }, "Logged in");
 });
 
-/** Admin-only login: same flow as login but requires role=admin (never reveals which check failed). */
 export const adminLogin = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
