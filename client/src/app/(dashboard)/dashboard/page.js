@@ -16,6 +16,8 @@ import {
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { formatMoney, formatDate } from "@/lib/utils";
+import { useVoiceSupport } from "@/hooks/useVoiceSupport";
+import { SpeakButton } from "@/components/voice/SpeakButton";
 import { Card, StatCard, CardHeader } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SkeletonList } from "@/components/ui/EmptyState";
@@ -28,6 +30,7 @@ export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const voiceOn = useVoiceSupport();
 
   useEffect(() => {
     load();
@@ -77,6 +80,24 @@ export default function DashboardPage() {
   const savedThisMonth = (data?.income || 0) - (data?.expense || 0);
   const goalHit =
     user?.savingsGoal > 0 && savedThisMonth >= Number(user.savingsGoal);
+
+  const now = new Date();
+  const daysLeft = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
+  const topBudget = data?.budgets?.[0];
+  const voiceBrief = data
+    ? [
+        `Your balance is ${balance} taka, with ${daysLeft} days left this month.`,
+        `You earned ${data.income || 0} and spent ${data.expense || 0} this month.`,
+        topCat?.category?.name
+          ? `Your top spending category is ${topCat.category.name}.`
+          : "",
+        topBudget?.category?.name
+          ? `Your ${topBudget.category.name} budget is ${Math.round(topBudget.percentage || 0)} percent used.`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+    : "";
 
   return (
     <div className="space-y-6">
@@ -213,9 +234,18 @@ export default function DashboardPage() {
             <CardHeader
               title="Budget vs actual"
               action={
-                <Link href="/budgets" className="text-xs text-honey-600 hover:underline">
-                  Manage
-                </Link>
+                <span className="flex items-center gap-2">
+                  {voiceOn && data && (
+                    <SpeakButton
+                      text={voiceBrief}
+                      label="Read my money snapshot aloud"
+                      className="rounded-lg border border-zinc-300 p-1.5 text-zinc-500 transition hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                    />
+                  )}
+                  <Link href="/budgets" className="text-xs text-honey-600 hover:underline">
+                    Manage
+                  </Link>
+                </span>
               }
             />
             {!data?.budgets?.length ? (

@@ -951,6 +951,24 @@ def ph_voice(c: Ctx):
         assert p.get_by_label("ভয়েস এন্ট্রি শুরু করুন").count() == 0
         p.evaluate("() => localStorage.removeItem('cc_voice')")
 
+    with c.step("dashboard read-aloud button present and clickable"):
+        goto(p, "/dashboard")
+        speak_btn = p.get_by_label("Read my money snapshot aloud")
+        wait_visible(speak_btn, timeout=30000)  # waits for dashboard data too
+        speak_btn.click()  # headless TTS may no-op (no voices) — must not crash
+        assert (
+            p.get_by_label("Stop Read my money snapshot aloud").count()
+            + p.get_by_label("Read my money snapshot aloud").count()
+        ) >= 1
+
+    with c.step("chat gains a mic + spoken-reply toggle"):
+        p.locator('[aria-label="Open chat"]').click()
+        wait_visible(p.get_by_text("automated assistant for learning purposes"))
+        wait_visible(p.get_by_label("Start voice input"))
+        wait_visible(p.get_by_label("Mute spoken replies"))
+        p.locator('[aria-label="Open chat"]').click()
+        wait_gone(p.locator("div.fixed.bottom-24"))
+
 
 # ------------------------------------------------------------------ main ----
 

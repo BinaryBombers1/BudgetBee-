@@ -2,9 +2,24 @@
 
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Sparkles, Bot, Trash2 } from "lucide-react";
+import {
+  MessageCircle,
+  X,
+  Send,
+  Sparkles,
+  Bot,
+  Trash2,
+  Mic,
+  Square,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
+import { useVoiceSupport } from "@/hooks/useVoiceSupport";
+import { useVoiceRecognition } from "@/hooks/useVoiceRecognition";
+import { useVoiceTts } from "@/hooks/useVoiceTts";
+import { LOCALES, getStoredLang } from "@/lib/voice/lang";
 
 const WELCOME = {
   role: "assistant",
@@ -65,6 +80,26 @@ export function ChatWidget() {
   const bottomRef = useRef(null);
   const userId = user?.id || user?._id;
 
+  const voiceOn = useVoiceSupport();
+  const [speakOn, setSpeakOn] = useState(true);
+  const tts = useVoiceTts();
+  const chatRec = useVoiceRecognition({
+    lang: LOCALES[getStoredLang()],
+    onFinal: handleVoiceText,
+  });
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("cc_voice_tts") === "0") setSpeakOn(false);
+    } catch {
+      /* storage blocked — default on */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (chatRec.listening) setInput(chatRec.interim);
+  }, [chatRec.listening, chatRec.interim]);
+
   useEffect(() => {
     if (!userId) return;
     setMessages(loadMessages(userId));
@@ -81,9 +116,18 @@ export function ChatWidget() {
 
   if (!user) return null;
 
-  async function send(e) {
+  function send(e) {
     e.preventDefault();
-    const text = input.trim();
+    sendText(input);
+  }
+
+  function handleVoiceText(transcript) {
+    if (!transcript || !transcript.trim()) return;
+    sendText(transcript, { viaVoice: true });
+  }
+
+  async function sendText(raw, { viaVoice = false } = {}) {
+    const text = String(raw || "").trim();
     if (!text || loading) return;
 
     const next = [...messages, { role: "user", content: text }];
@@ -91,29 +135,38 @@ export function ChatWidget() {
     setInput("");
     setLoading(true);
 
+    let reply;
     try {
       const res = await api.post("/ai/chat", {
         message: text,
         history: messages.slice(-6).map((m) => ({ role: m.role, content: m.content })),
       });
-      const reply =
+      reply =
         typeof res.data?.reply === "string" && res.data.reply.trim()
           ? res.data.reply
           : "I'm here — try rephrasing that? 💬";
       setMessages([...next, { role: "assistant", content: reply, source: res.data?.source }]);
     } catch (err) {
-      setMessages([
-        ...next,
-        {
-          role: "assistant",
-          content:
-            err?.message ||
-            "Hmm, that didn't go through — give it another try in a moment. 💬",
-        },
-      ]);
+      reply =
+        err?.message ||
+        "Hmm, that didn't go through — give it another try in a moment. 💬";
+      setMessages([...next, { role: "assistant", content: reply }]);
     } finally {
       setLoading(false);
     }
+
+    if (viaVoice && speakOn && reply) tts.say(reply, LOCALES[getStoredLang()]);
+  }
+
+  function toggleSpeakOn() {
+    const next = !speakOn;
+    setSpeakOn(next);
+    try {
+      localStorage.setItem("cc_voice_tts", next ? "1" : "0");
+    } catch {
+      /* storage blocked — session toggle only */
+    }
+    if (!next) tts.stop();
   }
 
   function clearChat() {
@@ -170,6 +223,17 @@ export function ChatWidget() {
               >
                 <Trash2 className="h-4 w-4" />
               </button>
+              {voiceOn && (
+                <button
+                  type="button"
+                  onClick={toggleSpeakOn}
+                  aria-label={speakOn ? "Mute spoken replies" : "Unmute spoken replies"}
+                  title={speakOn ? "Mute spoken replies" : "Unmute spoken replies"}
+                  className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-100 hover:text-honey-500 dark:hover:bg-zinc-800"
+                >
+                  {speakOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                </button>
+              )}
               <Sparkles className="h-4 w-4 text-honey-500" />
             </div>
 
@@ -226,7 +290,39 @@ export function ChatWidget() {
               <div ref={bottomRef} />
             </div>
 
+            {voiceOn && chatRec.error && (
+              <p aria-live="polite" className="px-4 pb-1 text-[10px] text-amber-600 dark:text-amber-400">
+                {chatRec.error}
+              </p>
+            )}
+
             <form onSubmit={send} className="flex gap-2 border-t border-amber-500/10 p-3">
+              {voiceOn && (
+                <button
+                  type="button"
+                  aria-label={chatRec.listening ? "Stop voice input" : "Start voice input"}
+                  onClick={() => {
+                    if (chatRec.listening) {
+                      chatRec.stop();
+                    } else {
+                      tts.stop();
+                      chatRec.start();
+                    }
+                  }}
+                  disabled={loading}
+                  className={`shrink-0 rounded-lg border px-3 transition disabled:opacity-50 ${
+                    chatRec.listening
+                      ? "border-rose-500 bg-rose-500/10 text-rose-500"
+                      : "border-zinc-300 text-zinc-500 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  {chatRec.listening ? (
+                    <Square className="h-4 w-4 fill-current" />
+                  ) : (
+                    <Mic className="h-4 w-4" />
+                  )}
+                </button>
+              )}
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

@@ -6,11 +6,12 @@ import { Bot, Mic, MessageCircle, Square, Wand2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { parseIntent } from "@/lib/voice/parseIntent";
 import { SUGGESTION_EXAMPLES } from "@/lib/voice/lexicon";
+import { LOCALES, getStoredLang, setStoredLang } from "@/lib/voice/lang";
+import { stopSpeaking } from "@/lib/voice/tts";
 import { useVoiceRecognition } from "@/hooks/useVoiceRecognition";
+import { useVoiceTts } from "@/hooks/useVoiceTts";
 import { VoiceWave } from "./VoiceWave";
 import { VoiceChips } from "./VoiceChips";
-
-const LOCALES = { en: "en-US", bn: "bn-BD", ur: "ur-PK" };
 
 const LANGS = [
   { code: "en", label: "EN", mic: "Start voice entry", stop: "Stop listening" },
@@ -31,21 +32,12 @@ export function MicButton({ onApply }) {
   const textRef = useRef(null);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("cc_voice_lang");
-      if (saved && LOCALES[saved]) setLang(saved);
-    } catch {
-      /* storage blocked — keep default */
-    }
+    setLang(getStoredLang());
   }, []);
 
   function pickLang(code) {
     setLang(code);
-    try {
-      localStorage.setItem("cc_voice_lang", code);
-    } catch {
-      /* storage blocked — chip still works for this session */
-    }
+    setStoredLang(code);
   }
 
   async function askBudgetBee(spoken) {
@@ -60,6 +52,7 @@ export function MicButton({ onApply }) {
           : "I'm here — try rephrasing that? 💬";
       setReply(r);
       setView("chat");
+      tts.say(r, LOCALES[lang]);
     } catch {
       setReply("");
       startLocal(spoken, "Couldn't reach BudgetBee — type it instead.");
@@ -105,6 +98,7 @@ export function MicButton({ onApply }) {
   }
 
   const rec = useVoiceRecognition({ lang: LOCALES[lang], onFinal: handleFinal });
+  const tts = useVoiceTts();
   const { cancel: cancelListening } = rec;
 
   function toggleMic() {
@@ -116,6 +110,7 @@ export function MicButton({ onApply }) {
     setNote("");
     setReply("");
     setSuggestionUsed(false);
+    stopSpeaking();
     if (rec.start()) setView("listening");
   }
 
