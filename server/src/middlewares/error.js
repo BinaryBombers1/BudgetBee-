@@ -31,7 +31,6 @@ export function errorHandler(err, req, res, next) {
     console.error(`[${new Date().toISOString()}] ${statusCode} ${message}`, err.stack?.split("\n").slice(0, 4).join("\n"));
   }
 
-  // Unexpected 5xx: log the real error, but never leak internals to the client
   const clientMessage =
     statusCode >= 500 ? "Something went wrong — please try again." : message;
 
