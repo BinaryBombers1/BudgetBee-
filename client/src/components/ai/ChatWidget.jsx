@@ -19,7 +19,7 @@ import { useAuthStore } from "@/store/auth";
 import { useVoiceSupport } from "@/hooks/useVoiceSupport";
 import { useVoiceRecognition } from "@/hooks/useVoiceRecognition";
 import { useVoiceTts } from "@/hooks/useVoiceTts";
-import { LOCALES, getStoredLang } from "@/lib/voice/lang";
+import { LOCALES, LANGS, langMeta, getStoredLang, setStoredLang, PRIVACY_NOTE } from "@/lib/voice/lang";
 
 const WELCOME = {
   role: "assistant",
@@ -82,9 +82,10 @@ export function ChatWidget() {
 
   const voiceOn = useVoiceSupport();
   const [speakOn, setSpeakOn] = useState(true);
+  const [voiceLang, setVoiceLang] = useState("en");
   const tts = useVoiceTts();
   const chatRec = useVoiceRecognition({
-    lang: LOCALES[getStoredLang()],
+    lang: LOCALES[voiceLang],
     onFinal: handleVoiceText,
   });
 
@@ -94,11 +95,19 @@ export function ChatWidget() {
     } catch {
       /* storage blocked — default on */
     }
+    setVoiceLang(getStoredLang());
   }, []);
 
   useEffect(() => {
     if (chatRec.listening) setInput(chatRec.interim);
   }, [chatRec.listening, chatRec.interim]);
+
+  function cycleVoiceLang() {
+    const idx = LANGS.findIndex((l) => l.code === voiceLang);
+    const next = LANGS[(idx + 1) % LANGS.length].code;
+    setVoiceLang(next);
+    setStoredLang(next);
+  }
 
   useEffect(() => {
     if (!userId) return;
@@ -300,7 +309,19 @@ export function ChatWidget() {
               {voiceOn && (
                 <button
                   type="button"
-                  aria-label={chatRec.listening ? "Stop voice input" : "Start voice input"}
+                  aria-label={`Voice language: ${langMeta(voiceLang).label}`}
+                  title="Voice language"
+                  onClick={cycleVoiceLang}
+                  className="shrink-0 rounded-lg border border-zinc-300 px-2 py-1 text-[11px] font-semibold text-zinc-500 transition hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                >
+                  {langMeta(voiceLang).label}
+                </button>
+              )}
+              {voiceOn && (
+                <button
+                  type="button"
+                  aria-label={chatRec.listening ? langMeta(voiceLang).chatStop : langMeta(voiceLang).chatStart}
+                  title={PRIVACY_NOTE}
                   onClick={() => {
                     if (chatRec.listening) {
                       chatRec.stop();

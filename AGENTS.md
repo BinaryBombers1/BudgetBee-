@@ -23,10 +23,13 @@ cd client && npm install
 npm run dev        # next dev
 npm run build      # <-- the real verification gate ("build green" = done)
 npm run lint       # next lint (eslint-config-next / core-web-vitals)
+npm test           # vitest run — voice parser suite (45 golden phrases, pure functions in src/lib/voice/)
 ```
 
-- **There is no test runner, no typecheck, and no formatter script.** Don't invent `npm test`.
-  Verify server changes by booting `npm run dev` and hitting `GET /api/v1/health`.
+- **There is no typecheck and no formatter script.** The only unit tests are the client's
+  `npm test` (voice parsers). Server changes have no test runner — verify by booting
+  `npm run dev` and hitting `GET /api/v1/health`.
+- E2E: `python e2e/run_e2e.py` (Playwright; phases incl. `voice` — run `--only login,voice`).
 - `prettier` is in client devDependencies but has no config/script — don't run it as a gate.
 - Order that matters: `client: lint -> build`. Server: boot + smoke check only.
 - **Stop the client dev server before `npm run build`** (then restart it): `next build` and `next dev` share

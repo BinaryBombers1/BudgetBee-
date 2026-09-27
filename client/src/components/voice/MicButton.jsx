@@ -6,18 +6,12 @@ import { Bot, Mic, MessageCircle, Square, Wand2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { parseIntent } from "@/lib/voice/parseIntent";
 import { SUGGESTION_EXAMPLES } from "@/lib/voice/lexicon";
-import { LOCALES, getStoredLang, setStoredLang } from "@/lib/voice/lang";
+import { LOCALES, LANGS, getStoredLang, setStoredLang, PRIVACY_NOTE } from "@/lib/voice/lang";
 import { stopSpeaking } from "@/lib/voice/tts";
 import { useVoiceRecognition } from "@/hooks/useVoiceRecognition";
 import { useVoiceTts } from "@/hooks/useVoiceTts";
 import { VoiceWave } from "./VoiceWave";
 import { VoiceChips } from "./VoiceChips";
-
-const LANGS = [
-  { code: "en", label: "EN", mic: "Start voice entry", stop: "Stop listening" },
-  { code: "bn", label: "বাংলা", mic: "ভয়েস এন্ট্রি শুরু করুন", stop: "শোনা বন্ধ করুন" },
-  { code: "ur", label: "اردو", mic: "وائس اینٹری شروع کریں", stop: "سننا بند کریں" },
-];
 
 export function MicButton({ onApply }) {
   const [lang, setLang] = useState("en");
@@ -180,7 +174,7 @@ export function MicButton({ onApply }) {
   }, [view, cancelListening]);
 
   const current = LANGS.find((l) => l.code === lang) || LANGS[0];
-  const micLabel = rec.listening ? current.stop : current.mic;
+  const micLabel = rec.listening ? current.stop : current.start;
   const errorish = rec.error || note;
 
   let status = 'Try "120 taka for lunch"';
@@ -196,6 +190,7 @@ export function MicButton({ onApply }) {
           type="button"
           onClick={toggleMic}
           aria-label={micLabel}
+          title={PRIVACY_NOTE}
           className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-md transition ${
             rec.listening
               ? "bg-rose-500 hover:bg-rose-600"
