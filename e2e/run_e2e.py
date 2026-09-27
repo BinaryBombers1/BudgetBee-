@@ -251,6 +251,22 @@ def ph_public(c: Ctx):
         p.locator("#sitemap").scroll_into_view_if_needed()
         assert p.locator("#sitemap").is_visible()
 
+    with c.step("footer link opens privacy policy"):
+        p.get_by_role("link", name="Privacy policy").first.click()
+        p.wait_for_url("**/privacy**", timeout=15000)
+        wait_visible(p.get_by_role("heading", name="Privacy policy"))
+
+    with c.step("public info pages: how-it-works, terms, sitemap diagram"):
+        goto(p, "/how-it-works")
+        wait_visible(p.get_by_role("heading", name=re.compile("5 moves")))
+        assert p.locator("#voice").count() == 1, "voice section missing"
+        goto(p, "/terms")
+        wait_visible(p.get_by_role("heading", name="Terms of use"))
+        goto(p, "/sitemap")
+        wait_visible(p.get_by_role("heading", name=re.compile("one map")))
+        wait_visible(p.get_by_role("link", name="Announcements"))
+        wait_visible(p.get_by_role("link", name="Add transaction"))
+
     with c.step("Sign in link navigates to /login"):
         p.get_by_role("link", name="Sign in").first.click()
         p.wait_for_url("**/login**", timeout=15000)

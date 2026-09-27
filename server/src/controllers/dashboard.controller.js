@@ -17,13 +17,20 @@ export const getDashboard = asyncHandler(async (req, res) => {
   const userId = new mongoose.Types.ObjectId(req.user.id);
   const { start, end } = monthBounds();
 
-  try {
-    await materializeRecurringForUser(req.user.id);
-  } catch {
-    /* never block the dashboard on materialization */
-  }
+  /* never block the dashboard on materialization — it runs in the background
+     and its writes show up on the next load (fire-and-forget keeps the N+1
+     recurring checks off the critical path) */
+  materializeRecurringForUser(req.user.id).catch(() => {});
 
-  const [summary, topCategory, recentTx, rankedTips, unreadNotifs, budgetRows] = await Promise.all([
+  const [
+    summary,
+    topCategory,
+    recentTx,
+    rankedTips,
+    unreadNotifs,
+    budgetRows,
+    monthTrend,
+  ] = await Promise.all([
     Transaction.aggregate([
       { $match: { userId, date: { $gte: start, $lt: end } } },
       {
@@ -106,6 +113,25 @@ export const getDashboard = asyncHandler(async (req, res) => {
         },
       },
     ]),
+    Transaction.aggregate([
+      {
+        $match: {
+          userId,
+          date: { $gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000) },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            y: { $year: "$date" },
+            m: { $month: "$date" },
+            type: "$type",
+          },
+          total: { $sum: "$amount" },
+        },
+      },
+      { $sort: { "_id.y": 1, "_id.m": 1 } },
+    ]),
   ]);
 
   const income = summary.find((s) => s._id === "income")?.total || 0;
@@ -116,26 +142,6 @@ export const getDashboard = asyncHandler(async (req, res) => {
     .filter((t) => t.status === "pinned")
     .concat(rankedTips.filter((t) => t.status === "active"))
     .slice(0, 3);
-
-  const monthTrend = await Transaction.aggregate([
-    {
-      $match: {
-        userId,
-        date: { $gte: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000) },
-      },
-    },
-    {
-      $group: {
-        _id: {
-          y: { $year: "$date" },
-          m: { $month: "$date" },
-          type: "$type",
-        },
-        total: { $sum: "$amount" },
-      },
-    },
-    { $sort: { "_id.y": 1, "_id.m": 1 } },
-  ]);
 
   const trendMap = {};
   for (const row of monthTrend) {

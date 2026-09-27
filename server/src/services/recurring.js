@@ -21,16 +21,29 @@ export async function materializeRecurringForUser(userId) {
     isRecurring: true,
     recurringDay: { $ne: null, $lte: today },
   });
+  if (!templates.length) return [];
+
+  /* one batched query instead of an exists() round-trip per template */
+  const notes = [...new Set(templates.map((t) => t.note ?? null))];
+  const noteFilter =
+    notes.includes(null)
+      ? {
+          $or: [
+            { note: { $in: notes.filter((n) => n !== null) } },
+            { note: null },
+          ],
+        }
+      : { note: { $in: notes } };
+  const thisMonth = await Transaction.find({
+    userId,
+    date: { $gte: monthStart, $lt: monthEnd },
+    ...noteFilter,
+  }).select("note categoryId");
+  const taken = new Set(thisMonth.map((t) => `${t.categoryId}|${t.note ?? ""}`));
 
   const created = [];
   for (const tpl of templates) {
-    const exists = await Transaction.exists({
-      userId,
-      categoryId: tpl.categoryId,
-      note: tpl.note,
-      date: { $gte: monthStart, $lt: monthEnd },
-    });
-    if (exists) continue;
+    if (taken.has(`${tpl.categoryId}|${tpl.note ?? ""}`)) continue;
 
     const day = Math.min(tpl.recurringDay, daysInMonth(now.getFullYear(), now.getMonth()));
     let date = new Date(now.getFullYear(), now.getMonth(), day, 12, 0, 0);
@@ -49,6 +62,7 @@ export async function materializeRecurringForUser(userId) {
       aiSuggested: false,
     });
     created.push(doc);
+    taken.add(`${doc.categoryId}|${doc.note ?? ""}`);
   }
   return created;
 }
