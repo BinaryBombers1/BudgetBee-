@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { FileQuestion } from "lucide-react";
+import { BeeMascot } from "@/components/ui/BeeLoader";
 
 export function EmptyState({ icon: Icon = FileQuestion, title, description, action }) {
   return (
@@ -38,6 +39,18 @@ export function SkeletonCard() {
 export function SkeletonList({ count = 4 }) {
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-center gap-2 pb-1" role="status" aria-label="Loading">
+        <motion.span
+          animate={{ y: [0, -3, 0] }}
+          transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
+          className="inline-flex"
+        >
+          <BeeMascot size={26} />
+        </motion.span>
+        <span className="text-xs font-medium text-honey-600/90 dark:text-honey-400/90">
+          BudgetBee is loading…
+        </span>
+      </div>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="glass-card flex items-center gap-4 p-4">
           <Skeleton className="h-10 w-10 rounded-full" />

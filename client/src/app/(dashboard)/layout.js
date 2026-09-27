@@ -10,7 +10,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { Toaster } from "@/components/ui/Toaster";
 import { ChatWidget } from "@/components/ai/ChatWidget";
 import { useSocket } from "@/hooks/useSocket";
-import { SkeletonList } from "@/components/ui/EmptyState";
+import { BeeLoader } from "@/components/ui/BeeLoader";
 
 export default function DashboardLayout({ children }) {
   const router = useRouter();
@@ -38,22 +38,11 @@ export default function DashboardLayout({ children }) {
   }, [initialized, loading, user, isAdminArea, router]);
 
   if (!initialized || loading || !user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
-        <div className="w-full max-w-md space-y-4 p-6">
-          <div className="skeleton mx-auto h-10 w-48" />
-          <SkeletonList count={3} />
-        </div>
-      </div>
-    );
+    return <BeeLoader full />;
   }
 
   if (isAdminArea && user.role !== "admin") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-6 dark:bg-zinc-950">
-        <p className="text-sm text-zinc-500">Redirecting…</p>
-      </div>
-    );
+    return <BeeLoader full label="Redirecting you…" />;
   }
 
   const padClass = sidebarOpen ? "lg:pl-[16.25rem]" : "lg:pl-[5.5rem]";

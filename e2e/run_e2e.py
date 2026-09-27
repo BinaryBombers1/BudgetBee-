@@ -225,6 +225,12 @@ def wait_otp_from_server_log(email: str, timeout: float = 20.0) -> str:
 def ph_public(c: Ctx):
     p, c.phase = c.page, "public"
 
+    with c.step("boot HTML ships the animated BudgetBee loader"):
+        r = requests.get(BASE + "/dashboard", timeout=15)
+        assert r.status_code == 200, f"status={r.status_code}"
+        assert "bee-track" in r.text, "dashed flight track missing from SSR boot HTML"
+        assert "Waking up BudgetBee" in r.text, "loader message missing from SSR boot HTML"
+
     with c.step("landing renders + sitemap section"):
         goto(p, "/")
         wait_visible(p.get_by_text("Campus Coin", exact=False))

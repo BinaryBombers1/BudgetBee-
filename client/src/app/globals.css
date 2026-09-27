@@ -64,11 +64,22 @@ body {
   }
 
   .skeleton {
-    @apply animate-shimmer rounded-lg bg-gradient-to-r from-zinc-200/60 via-zinc-100/60 to-zinc-200/60 bg-[length:200%_100%] dark:from-zinc-800/60 dark:via-zinc-700/40 dark:to-zinc-800/60;
+    @apply animate-shimmer rounded-lg bg-gradient-to-r from-honey-200/50 via-honey-100/70 to-honey-200/50 bg-[length:200%_100%] dark:from-honey-900/40 dark:via-honey-800/25 dark:to-honey-900/40;
+  }
+
+  .bee-track {
+    animation: bee-dash-drift 1.4s linear infinite;
   }
 
   .page-enter {
     @apply animate-slide-up;
+  }
+}
+
+/* BudgetBee loader — dashed flight track drift */
+@keyframes bee-dash-drift {
+  to {
+    stroke-dashoffset: -32;
   }
 }
 
