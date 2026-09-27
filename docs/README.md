@@ -8,7 +8,8 @@ Read in this order before the defense:
 | 2 | [02-tech-stack-decisions.md](./02-tech-stack-decisions.md) | Every "why": Next vs plain React, App Router, JS vs TS, Express, MongoDB vs SQL, **MVC vs repository pattern**, auth/JWT, Socket.io, AI design, data model, request lifecycle, deployment |
 | 3 | [03-packages-explained.md](./03-packages-explained.md) | Every npm package: what it does *in this app* + why we picked it — plus what we deliberately skipped (Redux, Axios, TypeScript…) |
 | 4 | [04-judge-qa.md](./04-judge-qa.md) | Rapid-fire Q&A across 11 categories (project, frontend, backend, security, AI, data, realtime, testing, deploy, business, honest weaknesses) + 10 one-liners |
-| 5 | [05-future-enhancements.md](./05-future-enhancements.md) | **Voice interaction** (features + how + effort), UX roadmap, technical roadmap, product roadmap |
+| 5 | [05-future-enhancements.md](./05-future-enhancements.md) | Broader UX roadmap (PWA, Bangla UI, push, OCR), technical roadmap, product roadmap |
+| 6 | [06-voice-feature-plan.md](./06-voice-feature-plan.md) | **THE voice feature** (EN + Urdu/Hindi): architecture, bilingual parsing, UX states, edge cases, 4-day plan, rollback safety, judge cheat-sheet |
 
 **Golden rules for the defense:**
 1. Never bluff — use the honest-weakness table in 04-K; every gap has a named fix.

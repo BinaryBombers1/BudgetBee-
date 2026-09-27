@@ -1,0 +1,233 @@
+# Campus Coin — Voice Feature Plan (EN + Urdu/Hindi)
+
+> **Goal:** an extra "wow" layer on top of the completed SRS/EQ scope — voice makes Campus Coin *accessible*, not just impressive.
+> **Golden rule:** additive only — new files behind a flag; the core app must keep working even if voice is turned off or reverted.
+
+---
+
+## 1. The vision (30-second pitch)
+
+> "Two taps to log a expense becomes **one sentence**: *'120 taka for lunch'* — and BudgetBee doesn't just answer, it **speaks the verdict back** — in English **or** Urdu/Hindi. It's built on the browser's native Speech API, so it's free, private, and works on the phone already in the student's pocket — accessibility for hands-busy, low-typing, and motor-impaired users alike."
+
+**Target languages (v1):**
+1. **English** (`en-US` / `en-GB`)
+2. **Urdu / Hindi** — spoken Hindustani via `hi-IN` recognition (+ `ur-PK` used automatically if the browser offers it)
+
+The **UI stays English** (SRS is frozen) — only the **voice input/output layer** is bilingual. No screens get translated; nothing in the SRS scope moves.
+
+---
+
+## 2. Feature set
+
+| # | Feature | Wow moment | Backend change |
+|---|---|---|---|
+| **F1** | **Voice Quick-Entry** — mic on *New Transaction*: speak amount + what it was → chips fill amount/category/note → confirm | *"120 taka for lunch"* → ৳120 · Food · "lunch" prefilled | **None** (uses existing POST /transactions) |
+| **F2** | **Voice BudgetBee** — mic in chat; BudgetBee *speaks* the answer back | *"Can I buy a laptop for 40,000?"* → hears *"Wait — you have 13,997 taka safe…"* | None for F2; optional 1-line prompt tweak (§7) so replies match the input language |
+| **F3** | **Spoken Dashboard** — speaker button reads the daily brief | *"You can spend 450 taka today. Food is 80% used."* | None (reads existing dashboard state) |
+| **F4** *(stretch)* | **Voice commands** — *"new transaction", "open budgets", "monthly report"* | Instant navigation from the same mic | None |
+
+**Non-goals v1:** full UI translation, background listening/wake-word (needs always-on mic = privacy + battery no), offline ASR (browser limitation), voice biometrics.
+
+---
+
+## 3. Architecture — how it works
+
+**All client-side.** Recognition (ASR) and synthesis (TTS) run in the browser; the server doesn't even know voice exists. That's what makes it safe to add post-SRS.
+
+```
+                    ┌─────────────────── CLIENT (all new files) ───────────────────┐
+ Mic tap ──▶ SpeechRecognition ──▶ raw transcript (interim shown live)
+              (lang: en-* | hi-IN)          │
+                                            ▼
+                                  ┌─ normalizer ─┐  Devanagari/Urdu digits → ASCII,
+                                  │              │  "hazaar/sau/taka" → numbers
+                                  └──────┬───────┘
+                                         ▼
+                                  intent parser (pure)
+                    ┌───────────────┬────┴────────┬───────────────┐
+                    ▼               ▼             ▼               ▼
+              ENTRY intent     CHAT intent   DAILY-BURN      unrecognized
+                    │               │             │                │
+        form chips (amount,    POST /ai/chat   read dashboard   "Here's what
+        category, note)        (existing API)  state (local)    I heard → edit"
+                    │               │             │
+              user confirms    response ──▶ speechSynthesis (TTS)
+              POST /transactions            lang = input language
+```
+
+### New files only (safe surface)
+
+```
+client/src/lib/voice/
+  recognition.js     # wrapper: lang, interim results, silence timeout, error mapping
+  tts.js             # wrapper: voice selection per lang, rate, cancel-on-listen
+  parseEntry.js      # transcript → {amount, category, note}   ← PURE
+  parseIntent.js     # transcript → entry | chat | dailyburn | unknown  ← PURE
+  lexicon.js         # bilingual keyword/number/currency tables     ← PURE
+  normalize.js       # digit/script normalization (०→0, ۰→0, words→int) ← PURE
+client/src/hooks/useVoiceRecognition.js
+client/src/hooks/useVoiceTts.js
+client/src/components/voice/MicButton.jsx   # states: idle/listening/busy/error
+client/src/components/voice/VoiceWave.jsx   # animated wave (framer-motion)
+client/src/components/voice/VoiceChips.jsx  # parsed amount/category/note preview
+```
+
+**Integration points (3 small, guarded edits):**
+1. `transactions/new/page.js` — `<MicButton />` next to the amount field
+2. `ChatWidget.jsx` — mic on the input row + speak-reply toggle
+3. `dashboard/page.js` — speaker button on the "safe to spend" card
+
+Each integration is wrapped in `voiceEnabled()` (§9) → if the flag is off, the component never mounts.
+
+---
+
+## 4. Handling Urdu/Hindi + English (the hard part, done right)
+
+### 4.1 Recognition locale strategy
+- Preference order: **explicit user pick → `hi-IN` (Urdu/Hindi button) / `en-US` (English button) → browser default**.
+- Chrome's `hi-IN` model recognizes **spoken Hindustani** (Hindi & Urdu are mutually intelligible spoken); if a browser exposes `ur-PK`, we prefer it when the user picks the Urdu chip.
+- **UI:** one small language chip beside the mic: `EN | اردو`. It sets `recognition.lang` and the TTS voice — no guesswork, no surprise language switches.
+
+### 4.2 Script & number normalization (`normalize.js`)
+Recognition output may arrive in **three shapes** — all must parse:
+
+| Input form | Example | Rule |
+|---|---|---|
+| ASCII digits | `120 taka lunch` | pass-through |
+| Devanagari digits | `१२० टका दोपहर का खाना` | `०-९` (U+0966…) → offset −0x0966 |
+| Urdu (Eastern) digits | `۱۲۰ روپیہ` | `۰-۹` (U+06F0…) → offset −0x06F0 |
+| Roman-Urdu / Hinglish | `120 rupay khane pe` | lexicon match (below) |
+| Number words (multi-language) | `one hundred twenty` · `ek sau bees` · `barah sau` | word→int with hundred/thousand composition |
+
+**Word-number support (v1):** en (one…twenty, hundred, thousand) + hi/ur common words (ek, do, teen, char, panch, das, bees, pachas, sau, hazaar + उर्दू/देवनागरी spellings). Unparsed amounts → **never guess**: show the raw transcript in an editable field (user fixes digits by hand — 2 keystrokes).
+
+### 4.3 Category lexicon (`lexicon.js`) — bilingual + Roman
+Keyword → category maps for the 12 system categories, in **English, Devanagari, Urdu script, and Roman**:
+
+| Category | Keywords (sample) |
+|---|---|
+| Food | lunch, dinner, food, khana, खाना, کھانا, nashta, breakfast |
+| Transport | bus, rickshaw, uber, fare, savari, سفر, auto |
+| Mobile Recharge | recharge, balance, jazz, zong, sim, रिचार्ज |
+| Cafe & Snacks | coffee, chai, chai, latte, cafe, چائے |
+| … | (all 12 system + any custom category name is also matched — we reuse the AI-categorize keyword idea client-side) |
+
+Priority: **exact amount+keyword > keyword > none** (leave category unset → user picks; never wrong-save).
+
+### 4.4 Language of the *reply* (TTS + chat)
+- TTS voice picked by the input language: `speechSynthesis.getVoices()` filtered by `lang.startsWith("hi")` / `"ur"` / `"en"` (async — listen for `voiceschanged`).
+- BudgetBee replies: today the LLM answers roughly in the asker's language; we make it deterministic with **one optional server line** (§7): *"If the user writes in Urdu/Hindi, reply in the same language."* → then TTS speaks it back in the matching voice.
+- `stripMarkdown` already runs server-side → TTS never reads asterisks.
+
+---
+
+## 5. UX design (next-level means *thoughtful*, not flashy)
+
+### F1 Voice Quick-Entry states
+```
+[idle] ──tap──▶ [listening] wave animates + live interim transcript
+                    │ silence 1.5s / tap stop
+                    ▼
+                 [parsing → chips:  ৳120 · 🍽 Food · "lunch" ]
+                    │
+        ┌───────────┴───────────┐
+     [Confirm ✓]            [Edit ✎]  (chips editable; raw transcript stays visible)
+        │
+        ▼ existing submit → success toast + confetti (existing lib)
+```
+- **Always confirm — voice never auto-saves money actions.** (Accuracy + trust.)
+- Aria-live announcements for each state; mic button has `aria-label` in both languages; full keyboard path (Esc cancels, Enter confirms).
+- Listening is **push-to-talk style**: one tap starts, auto-stops on 1.5 s silence or second tap.
+
+### F2 Voice BudgetBee
+Mic → transcript shown in bubble → send through **existing chat flow** → reply rendered as text **and** spoken (speaker toggle, default ON when voice was used). Tap anywhere → `speechSynthesis.cancel()` (interruption works — judges love interrupting the AI mid-sentence).
+**Known browser quirk handled:** stop TTS *before* starting ASR and vice-versa (they fight over the audio channel).
+
+### F3 Spoken Dashboard
+One speaker icon on the safe-to-spend card reads: *"You can spend 450 taka today, with 5 days left. Food budget is 80 percent used."* — assembled from values already on screen (client-only template, not an LLM call → instant, works offline).
+
+---
+
+## 6. Failure & edge handling (what makes it "handled")
+
+| Case | Behavior |
+|---|---|
+| Browser has no SpeechRecognition (Firefox, some WebViews) | **Mic hidden entirely** — progressive enhancement, UI unchanged |
+| Mic permission denied | Toast with one-line fix ("allow microphone for this site") + button returns to idle — no crash, no re-prompt loop |
+| No network (Chrome ASR is cloud-based) | Detection via error event → *"Voice needs internet — type it instead"* → text field focused |
+| User speaks, nothing parseable | Show **"I heard: …"** editable text prefilled — user salvages instead of retyping |
+| Wrong language picked | Chips show raw transcript → user re-taps with the other language chip (hint appears after a failed parse) |
+| TTS voices not loaded / no matching voice | Reply shows as text only (silent degradation) |
+| Double-tap / double-submit | Button disabled during parse+submit (existing idempotency kept) |
+| Silence / ambient noise | 1.5 s silence auto-stop; if transcript empty → gentle *"Didn't catch that"* |
+| Loud environment repeats | Confirm step is the safety net — a wrong save is impossible without a tap |
+| Privacy question (judge!) | Recognition is browser-native (Chrome sends audio to Google's recognizer — we disclose it in a tooltip); **our server never receives audio, only the confirmed text** |
+
+---
+
+## 7. Server touchpoints (deliberately minimal)
+
+1. **Optional, 1 line** in chat system prompts: *"Reply in the language the user wrote in (English/Urdu/Hindi)."* — makes F2's spoken reply language-perfect. Behind review; chat behavior for English users unchanged.
+2. **No schema changes.** Optionally later: `user.voiceLang` preference (fits the existing profile fields pattern) — v1 keeps the choice in `localStorage`.
+
+Nothing else on the server changes → **risk surface ≈ 0 for SRS features.**
+
+---
+
+## 8. Testing (and how this kills our "no unit tests" weakness)
+
+Voice parsers are **pure functions by design** → they become our **first unit-test suite (Vitest)**:
+- `normalize.test.js`: ASCII/Devanagari/Urdu digits, word-numbers ("barah sau" → 1200), mixed-script inputs
+- `parseEntry.test.js`: 30 golden phrases (15 EN + 15 Urdu/Hindi incl. Roman) → expected `{amount, category, note}`
+- `parseIntent.test.js`: entry vs chat vs daily-burn routing
+
+**Judge story:** *"We added our first unit tests with the voice feature — precisely because we'd architected the logic as pure functions."*
+
+**Manual matrix (half a day):** Chrome desktop + Android Chrome (primary targets), Edge, Safari (partial ASR — verify graceful paths), Firefox (verify mic hidden). Bilingual phrase checklist checked into `docs/` for repeatable runs.
+
+---
+
+## 9. Safety & rollback (you asked for this explicitly)
+
+1. **Flag:** `localStorage.cc_voice` (default: ON if capability detected). Flip off → all mic/speaker UI unmounts, app 100% back to normal. No redeploy needed.
+2. **Isolation:** every feature lives in new files (`lib/voice/*`, `hooks/useVoice*`, `components/voice/*`); the 3 integration points are single guarded lines (`{voiceEnabled() && <MicButton/>}`).
+3. **Git:** each day of work = one commit (`voice: parser+tests`, `voice: entry UX`, …) → `git revert <sha>` removes exactly that slice. Tag before starting: `git tag pre-voice`.
+4. **SRS firewall:** no existing component is rewritten; transactions/chat/dashboard keep their current code paths (voice only *feeds* them).
+
+**If we get stuck:** flag off (instant) → revert day-commits → core app untouched. The demo never depends on voice working in a hostile venue Wi-Fi (text path always one tap away).
+
+---
+
+## 10. Build plan (4 days)
+
+| Day | Deliverable | Gate |
+|---|---|---|
+| **D1** | `normalize` + `lexicon` + `parseEntry` + `parseIntent` **with Vitest suite** | `npx vitest run` green (30 golden phrases) |
+| **D2** | `recognition.js` + `useVoiceRecognition` + MicButton/Wave/Chips + **F1 wired into transactions/new** behind flag | Manual: EN + hi-IN entry on Chrome/Android |
+| **D3** | `tts.js` + **F2 chat voice** + **F3 dashboard readout** + interrupt handling | Speak a BudgetBee answer aloud in both languages |
+| **D4** | Language chip, error matrix (§6 pass), Firefox hide, a11y labels, phrase checklist doc, flag-off test | Full manual matrix + `npm run lint && npm run build` green |
+
+**Stretch (only if D1–D4 all green):** F4 voice navigation.
+
+---
+
+## 11. Risks & honest answers
+
+| Risk | Mitigation |
+|---|---|
+| ASR accuracy on accents/regional speech | Confirm-step design + editable transcript; our lexicon tolerates Roman-Urdu variants |
+| Chrome ASR needs internet | Disclosed + graceful text fallback (§6); judges demo on venue Wi-Fi which still works |
+| `hi-IN` returns mixed scripts (Latin/Devanagari) | Dual-script normalization + keyword maps in 4 forms |
+| TTS voice quality robotic | Native voice preferred when available; rate 1.0; text always visible alongside speech |
+| Scope creep | F1–F3 are the promise; F4 needs explicit time check on D4 |
+| "Did you build the speech model?" (judge trap) | **No — and that's correct:** we *orchestrate* browser ASR/TTS + our own parse layer; the IP is the bilingual intent/entry parser + UX. Say this confidently. |
+
+---
+
+## 12. Judge cheat-sheet
+
+- **Q: How does it work?** "Native Web Speech API in the browser — ASR in, our bilingual parser (digits/scripts/number-words in English, Urdu, Hindi, Roman), TTS out. Zero audio touches our server."
+- **Q: Why not build/use a paid speech API?** "Browser-native is free, offline-capable for TTS, and privacy-preserving; we'd only move to a paid API if we needed guaranteed offline ASR or server-side processing later."
+- **Q: What if it fails?** "Mic disappears if unsupported; failed parses show an editable transcript; the whole feature sits behind a localStorage flag — one line and it's off."
+- **Q: Two languages — how?** "Locale chips set recognition + TTS language; our parser normalizes Devanagari **and** Urdu digits and matches category keywords in four script/roman forms."
+- **Demo line:** *(tap mic)* **"One hundred and twenty taka for lunch"** → chips: ৳120 · Food · lunch → **Confirm.** Then switch chip: **"کیا میں لیپ ٹاپ خرید سکتا ہوں؟"** → BudgetBee answers **aloud**.
