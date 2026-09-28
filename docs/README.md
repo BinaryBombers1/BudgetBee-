@@ -11,6 +11,7 @@ Read in this order before the defense:
 | 5 | [05-future-enhancements.md](./05-future-enhancements.md) | Broader UX roadmap (PWA, Bangla UI, push, OCR), technical roadmap, product roadmap |
 | 6 | [06-voice-feature-plan.md](./06-voice-feature-plan.md) | **THE voice feature** (EN + Bangla + Urdu/Hindi): architecture, trilingual parsing, unclear-speech recovery, UX states, edge cases, 4–5-day plan, rollback safety, judge cheat-sheet |
 | 7 | [07-voice-phrase-checklist.md](./07-voice-phrase-checklist.md) | Voice test pack: 45 golden phrases (15 × 3 languages), intent-routing cases, browser manual matrix, automated gates + flag rollback |
+| 8 | [08-voice-feature-how-it-works.md](./08-voice-feature-how-it-works.md) | **As-built voice reference**: how STT + parsing + neural TTS actually work end-to-end, every tech choice, resilience matrix, file map |
 
 **Golden rules for the defense:**
 1. Never bluff — use the honest-weakness table in 04-K; every gap has a named fix.

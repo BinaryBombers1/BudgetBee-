@@ -85,8 +85,10 @@ export default function PrivacyPage() {
             vendor processes the audio under <em>its own</em> privacy policy;</li>
           <li>Campus Coin receives the resulting <strong>transcript text only</strong> — we do
             not record, store, or upload audio files;</li>
-          <li>spoken replies (read-aloud) are synthesized locally by your device&apos;s speech
-            engine.</li>
+          <li>spoken replies (read-aloud) use a neural voice service: only the reply
+            <strong> text</strong> (never audio or mic input) is sent to our server, which
+            requests the audio from a speech provider — if that is unreachable, your
+            device&apos;s built-in speech engine speaks locally instead.</li>
         </ul>
         <p>
           You can decline the microphone permission at any time in your browser — every voice
