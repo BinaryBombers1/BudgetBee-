@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-export const MIN_LOADER_MS = 1800;
+export const MIN_LOADER_MS = 800;
 const FLIGHT_S = 4.4;
 
 const MESSAGES = [

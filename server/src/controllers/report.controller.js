@@ -1,7 +1,10 @@
 import mongoose from "mongoose";
 import { Transaction } from "../models/Transaction.js";
+import { User } from "../models/User.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { sendSuccess } from "../utils/response.js";
+import { sendSuccess, sendError } from "../utils/response.js";
+import { env } from "../config/env.js";
+import { sendReportShareEmail } from "../services/mail.service.js";
 
 function parseMonth(s) {
   if (!s) return null;
@@ -212,4 +215,31 @@ export const filteredReport = asyncHandler(async (req, res) => {
   ]);
 
   return sendSuccess(res, { byCategory, totals, transactions: list });
+});
+
+export const shareReport = asyncHandler(async (req, res) => {
+  const { email, month, pdf } = req.body;
+
+  const buf = Buffer.from(pdf, "base64");
+  if (buf.length < 100 || buf.subarray(0, 5).toString("latin1") !== "%PDF-") {
+    return sendError(res, "Invalid PDF payload", 400);
+  }
+
+  const user = await User.findById(req.user.id).select("name").lean();
+  const mail = await sendReportShareEmail({
+    to: email,
+    month,
+    senderName: user?.name || req.user.email,
+    senderEmail: req.user.email,
+    pdf: buf,
+  });
+
+  if (!mail.sent && env.NODE_ENV === "production") {
+    return sendError(res, "Could not send the report email", 502);
+  }
+  if (!mail.sent) {
+    console.log(`[SHARE DEV] report email not delivered to ${email}: ${mail.reason}`);
+  }
+
+  return sendSuccess(res, { email, month, delivered: mail.sent }, `Report share queued for ${email}`);
 });

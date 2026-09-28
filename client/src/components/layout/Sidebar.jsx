@@ -78,7 +78,11 @@ export function Sidebar() {
     router.push("/login");
   }
 
-  const isActive = (href) => pathname === href || pathname.startsWith(href + "/");
+  const activeHref = nav
+    .flatMap((s) => s.items.map((i) => i.href))
+    .filter((h) => pathname === h || pathname.startsWith(`${h}/`))
+    .sort((a, b) => b.length - a.length)[0];
+  const isActive = (href) => href === activeHref;
 
   return (
     <>

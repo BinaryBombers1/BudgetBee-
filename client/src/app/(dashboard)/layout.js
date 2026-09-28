@@ -43,7 +43,10 @@ export default function DashboardLayout({ children }) {
     }
   }, [minTimeUp, initialized, loading, user, isAdminArea, router]);
 
-  if (!initialized || loading || !user || !minTimeUp) {
+  const authReady = initialized && !loading && !!user;
+
+  /* Auth still resolving: only the loader can show. */
+  if (!authReady) {
     return <BeeLoader full />;
   }
 
@@ -51,10 +54,18 @@ export default function DashboardLayout({ children }) {
     return <BeeLoader full label="Redirecting you…" />;
   }
 
+  /* Auth known: mount children NOW so page data fetches overlap the
+     brand-loader hold; the bee stays as an overlay until minTimeUp. */
+  const coverLoader = !minTimeUp;
   const padClass = sidebarOpen ? "lg:pl-[16.25rem]" : "lg:pl-[5.5rem]";
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      {coverLoader && (
+        <div className="fixed inset-0 z-50 bg-zinc-50 dark:bg-zinc-950">
+          <BeeLoader full />
+        </div>
+      )}
       {isAdminArea ? <AdminSidebar /> : <Sidebar />}
       <div className={`flex min-h-screen flex-col transition-[padding] duration-300 ${padClass}`}>
         <Topbar live={connected} />

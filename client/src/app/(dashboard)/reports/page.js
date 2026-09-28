@@ -27,6 +27,7 @@ import {
 } from "recharts";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { sanitizeCaptureColors } from "@/lib/capture";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useUIStore } from "@/store/ui";
@@ -58,6 +59,7 @@ export default function ReportsPage() {
   const [filtering, setFiltering] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
+  const [sharing, setSharing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,32 +110,51 @@ export default function ReportsPage() {
     setFiltered(null);
   }
 
-  function shareReport() {
+  async function buildReportPdf() {
+    const el = document.getElementById("report-root");
+    if (!el) throw new Error("Report is not ready yet");
+    const canvas = await html2canvas(el, {
+      backgroundColor: "#ffffff",
+      scale: 2,
+      ignoreElements: (node) => node.getAttribute?.("data-report-ui") === "exclude",
+      onclone: (cloneDoc) => sanitizeCaptureColors(cloneDoc),
+    });
+    const img = canvas.toDataURL("image/jpeg", 0.92);
+    const pdf = new jsPDF({ orientation: "p", unit: "mm", format: "a4" });
+    const pw = pdf.internal.pageSize.getWidth();
+    const ph = pdf.internal.pageSize.getHeight();
+    const imgW = pw - 10;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    pdf.addImage(img, "JPEG", 5, 5, imgW, Math.min(imgH, ph - 10));
+    return pdf;
+  }
+
+  async function shareReport() {
     const email = shareEmail.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       addToast({ type: "error", message: "Enter a valid email" });
       return;
     }
-    // Demo build: no mail server — log the share request and confirm in UI
-    console.log(`[share] monthly report ${month} queued for ${email}`);
-    addToast({ type: "success", message: `Report share queued for ${email}` });
-    setShareOpen(false);
-    setShareEmail("");
+    setSharing(true);
+    try {
+      const pdf = await buildReportPdf();
+      const dataUrl = pdf.output("datauristring");
+      const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+      await api.post("/reports/share", { email, month, pdf: base64 });
+      addToast({ type: "success", message: `Report share queued for ${email}` });
+      setShareOpen(false);
+      setShareEmail("");
+    } catch (e) {
+      addToast({ type: "error", message: e.message });
+    } finally {
+      setSharing(false);
+    }
   }
 
   async function exportPDF() {
     setExporting(true);
     try {
-      const el = document.getElementById("report-root");
-      if (!el) return;
-      const canvas = await html2canvas(el, { backgroundColor: null, scale: 2 });
-      const img = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ orientation: "p", unit: "mm", a4: true });
-      const pw = pdf.internal.pageSize.getWidth();
-      const ph = pdf.internal.pageSize.getHeight();
-      const imgW = pw - 10;
-      const imgH = (canvas.height * imgW) / canvas.width;
-      pdf.addImage(img, "PNG", 5, 5, imgW, Math.min(imgH, ph - 10));
+      const pdf = await buildReportPdf();
       pdf.save(`campus-coin-report-${month}.pdf`);
       addToast({ type: "success", message: "PDF exported" });
     } catch (e) {
@@ -536,30 +557,32 @@ export default function ReportsPage() {
         </>
       )}
 
-      <Modal open={shareOpen} onClose={() => setShareOpen(false)} title="Share report by email">
-        <div className="space-y-4">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            We&apos;ll send a summary of the <strong>{monthLabel(month)}</strong> report
-            (charts, category breakdown, and totals).
-          </p>
-          <Input
-            label="Recipient email"
-            name="recipientEmail"
-            type="email"
-            placeholder="friend@university.edu"
-            value={shareEmail}
-            onChange={(e) => setShareEmail(e.target.value)}
-          />
-          <div className="flex justify-end gap-3">
-            <Button variant="ghost" onClick={() => setShareOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={shareReport}>
-              <Share2 className="h-4 w-4" /> Send
-            </Button>
+      <div data-report-ui="exclude">
+        <Modal open={shareOpen} onClose={() => setShareOpen(false)} title="Share report by email">
+          <div className="space-y-4">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              We&apos;ll send a summary of the <strong>{monthLabel(month)}</strong> report
+              (charts, category breakdown, and totals).
+            </p>
+            <Input
+              label="Recipient email"
+              name="recipientEmail"
+              type="email"
+              placeholder="friend@university.edu"
+              value={shareEmail}
+              onChange={(e) => setShareEmail(e.target.value)}
+            />
+            <div className="flex justify-end gap-3">
+              <Button variant="ghost" onClick={() => setShareOpen(false)} disabled={sharing}>
+                Cancel
+              </Button>
+              <Button onClick={shareReport} isLoading={sharing}>
+                <Share2 className="h-4 w-4" /> Send
+              </Button>
+            </div>
           </div>
-        </div>
-      </Modal>
+        </Modal>
+      </div>
     </div>
   );
 }
