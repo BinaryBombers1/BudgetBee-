@@ -15,9 +15,9 @@ async function main() {
   const PORT = process.env.PORT || env.PORT || 8080;
 
   server.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Campus Coin API running on port ${PORT}`);
-    console.log(`🔌 WebSocket initialized`);
-    console.log(`📦 Environment: ${env.NODE_ENV || "production"}`);
+    console.log(` Campus Coin API running on port ${PORT}`);
+    console.log(`WebSocket initialized`);
+    console.log(` Environment: ${env.NODE_ENV || "production"}`);
   });
 
   process.on("SIGINT", async () => {

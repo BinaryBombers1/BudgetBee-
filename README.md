@@ -349,17 +349,26 @@ For a deployed API set (client side): `API_PROXY_URL` (Next server) and/or `NEXT
 
 ## Deployment
 
-`render.yaml` (repo root) describes the **API** on [Render](https://render.com) (free plan):
+The app runs as two deployed parts:
 
-- `rootDir: server`, build `npm install`, start `npm start`, health check `/api/v1/health`
-- Env vars marked `sync: false` must be filled in the Render dashboard
-  (`MONGODB_URI`, JWT secrets, `CLIENT_URL`, optional AI + SMTP keys).
-- `NODE_ENV=production` and `MONGODB_TIMEOUT_MS=45000` are preset — a real Atlas URI is mandatory
-  in production.
+| Part | Host | URL |
+| --- | --- | --- |
+| Client (Next.js) | Vercel | https://campus-coin-theta.vercel.app |
+| API (Express) | Railway | https://campus-coin-api-production.up.railway.app |
 
-The **client** deploys to Vercel/Netlify/any Node host: set `NEXT_PUBLIC_API_URL` to the deployed
-API URL (e.g. `https://campus-coin-api.onrender.com/api/v1`) and put the client URL in the API's
-`CLIENT_URL`.
+**API — Railway**
+
+- Root directory `server`, start `npm start`; Railway provides `PORT` and probes `/api/v1/health`.
+- Env: `NODE_ENV=production`, `MONGODB_URI` (a real Atlas URI is mandatory — production refuses
+  the in-memory fallback), `MONGODB_TIMEOUT_MS=45000`, JWT secrets, SMTP keys for share/reset
+  emails, and `CLIENT_URL` = the Vercel URL (used for CORS and links inside emails).
+
+**Client — Vercel**
+
+- Root directory `client`, otherwise defaults (Next.js is auto-detected).
+- Set `API_PROXY_URL` = the Railway URL. The Next server then rewrites `/api/v1/*` and
+  `/socket.io/*` to the API, so the browser only ever talks same-origin — no CORS config and no
+  `NEXT_PUBLIC_API_URL` needed anywhere.
 
 ---
 
@@ -368,7 +377,6 @@ API URL (e.g. `https://campus-coin-api.onrender.com/api/v1`) and put the client 
 ```
 techwiz/
 ├── README.md                 ← you are here
-├── render.yaml               ← Render deployment (server)
 ├── client/                   ← Next.js 14 app
 │   ├── jsconfig.json         ← path alias @/* → src/*
 │   ├── next.config.mjs       ← rewrites /api/v1 + /socket.io → API
