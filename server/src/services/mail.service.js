@@ -1,8 +1,11 @@
+import dns from "node:dns";
+import net from "node:net";
 import nodemailer from "nodemailer";
 import { env } from "../config/env.js";
 
 let transporter = null;
 let lastAttempt = null;
+let lastConnectHost = null;
 
 function maskEmail(e) {
   const s = String(e ?? "");
@@ -21,6 +24,7 @@ export function getMailDiagnostics() {
     userSet: Boolean(env.SMTP_USER),
     passSet: Boolean(env.SMTP_PASS),
     from: env.MAIL_FROM || null,
+    connectHost: lastConnectHost,
     lastAttempt,
   };
 }
@@ -30,10 +34,22 @@ export function isMailConfigured() {
   return Boolean(env.SMTP_HOST);
 }
 
-function getTransporter() {
+async function getTransporter() {
   if (!transporter) {
+    let host = env.SMTP_HOST;
+    const needsV4 = host && !net.isIP(host);
+    if (needsV4) {
+      // Some hosts (e.g. Railway) have no IPv6 route while DNS returns AAAA
+      // first — pin the connection to IPv4; servername keeps TLS verification.
+      const v4 = await new Promise((res) =>
+        dns.lookup(host, { family: 4 }, (err, addr) => res(err ? null : addr))
+      );
+      if (v4) host = v4;
+    }
+    lastConnectHost = host || null;
     transporter = nodemailer.createTransport({
-      host: env.SMTP_HOST,
+      host,
+      ...(needsV4 ? { servername: env.SMTP_HOST } : {}),
       port: env.SMTP_PORT,
       secure: env.SMTP_SECURE === "true" || env.SMTP_PORT === 465,
       auth: env.SMTP_USER ? { user: env.SMTP_USER, pass: env.SMTP_PASS } : undefined,
@@ -52,7 +68,8 @@ async function send({ to, subject, html, text, attachments }) {
     return { sent: false, reason: "SMTP not configured" };
   }
   try {
-    await getTransporter().sendMail({ from: env.MAIL_FROM, to, subject, html, text, attachments });
+    const t = await getTransporter();
+    await t.sendMail({ from: env.MAIL_FROM, to, subject, html, text, attachments });
     console.log(`[MAIL] "${subject}" -> ${to}`);
     lastAttempt = { at: new Date().toISOString(), subject, to: maskEmail(to), sent: true, reason: null };
     return { sent: true };
