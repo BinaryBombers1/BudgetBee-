@@ -8,6 +8,11 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess } from "../utils/response.js";
 import { User as UserModel } from "../models/User.js";
 import { broadcastNotification } from "../services/notify.js";
+import { getMailDiagnostics } from "../services/mail.service.js";
+
+export const mailStatus = asyncHandler(async (req, res) => {
+  return sendSuccess(res, getMailDiagnostics());
+});
 
 export const getStats = asyncHandler(async (req, res) => {
   const [users, transactions, categories, topCategories, activeUsers] = await Promise.all([

@@ -13,6 +13,7 @@ import {
   createAnnouncement,
   updateAnnouncement,
   deleteAnnouncement,
+  mailStatus,
 } from "../controllers/admin.controller.js";
 import { protect, adminOnly } from "../middlewares/auth.js";
 import { validate } from "../middlewares/validate.js";
@@ -22,6 +23,7 @@ const router = Router();
 router.use(protect, adminOnly);
 
 router.get("/stats", getStats);
+router.get("/mail-status", mailStatus);
 
 router.get("/users", listUsers);
 router.patch("/users/:id/toggle", toggleUserActive);

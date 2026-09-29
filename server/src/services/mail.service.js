@@ -2,6 +2,28 @@ import nodemailer from "nodemailer";
 import { env } from "../config/env.js";
 
 let transporter = null;
+let lastAttempt = null;
+
+function maskEmail(e) {
+  const s = String(e ?? "");
+  const i = s.indexOf("@");
+  if (i < 1) return "***";
+  return `${s[0]}***${s.slice(i)}`;
+}
+
+/** Admin-safe view of SMTP config + the last send attempt (no secrets). */
+export function getMailDiagnostics() {
+  return {
+    configured: isMailConfigured(),
+    host: env.SMTP_HOST || null,
+    port: env.SMTP_PORT,
+    secure: env.SMTP_SECURE === "true" || env.SMTP_PORT === 465,
+    userSet: Boolean(env.SMTP_USER),
+    passSet: Boolean(env.SMTP_PASS),
+    from: env.MAIL_FROM || null,
+    lastAttempt,
+  };
+}
 
 /** SMTP is optional — without SMTP_HOST the app keeps its dev fallback (console + dev payload). */
 export function isMailConfigured() {
@@ -26,14 +48,17 @@ function getTransporter() {
 async function send({ to, subject, html, text, attachments }) {
   if (!isMailConfigured()) {
     console.log(`[MAIL SKIP] SMTP not configured (SMTP_HOST missing) — "${subject}" not sent`);
+    lastAttempt = { at: new Date().toISOString(), subject, to: maskEmail(to), sent: false, reason: "SMTP not configured (SMTP_HOST missing)" };
     return { sent: false, reason: "SMTP not configured" };
   }
   try {
     await getTransporter().sendMail({ from: env.MAIL_FROM, to, subject, html, text, attachments });
     console.log(`[MAIL] "${subject}" -> ${to}`);
+    lastAttempt = { at: new Date().toISOString(), subject, to: maskEmail(to), sent: true, reason: null };
     return { sent: true };
   } catch (err) {
     console.error(`[MAIL FAILED] "${subject}" -> ${to}: ${err.message}`);
+    lastAttempt = { at: new Date().toISOString(), subject, to: maskEmail(to), sent: false, reason: err.message };
     return { sent: false, reason: err.message };
   }
 }
