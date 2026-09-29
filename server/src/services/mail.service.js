@@ -24,7 +24,10 @@ function getTransporter() {
 }
 
 async function send({ to, subject, html, text, attachments }) {
-  if (!isMailConfigured()) return { sent: false, reason: "SMTP not configured" };
+  if (!isMailConfigured()) {
+    console.log(`[MAIL SKIP] SMTP not configured (SMTP_HOST missing) — "${subject}" not sent`);
+    return { sent: false, reason: "SMTP not configured" };
+  }
   try {
     await getTransporter().sendMail({ from: env.MAIL_FROM, to, subject, html, text, attachments });
     console.log(`[MAIL] "${subject}" -> ${to}`);
