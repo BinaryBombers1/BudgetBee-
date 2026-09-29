@@ -17,6 +17,7 @@ import { celebrate } from "@/lib/confetti";
 
 export default function BudgetsPage() {
   const user = useAuthStore((s) => s.user);
+  const isDemo = user?.email === "demo@campuscoin.app";
   const addToast = useUIStore((s) => s.addToast);
   const currency = user?.currency || "BDT";
 
@@ -172,12 +173,14 @@ export default function BudgetsPage() {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setDeleteTarget(b)}
-                    className="rounded p-1.5 text-zinc-400 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/10"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {!isDemo && (
+                    <button
+                      onClick={() => setDeleteTarget(b)}
+                      className="rounded p-1.5 text-zinc-400 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
 
                 <div className="mb-1.5 flex items-center justify-between text-xs">

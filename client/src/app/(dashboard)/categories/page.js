@@ -16,6 +16,7 @@ import { EmptyState, SkeletonList } from "@/components/ui/EmptyState";
 
 export default function CategoriesPage() {
   const user = useAuthStore((s) => s.user);
+  const isDemo = user?.email === "demo@campuscoin.app";
   const addToast = useUIStore((s) => s.addToast);
   const isAdmin = user?.role === "admin";
 
@@ -201,13 +202,15 @@ export default function CategoriesPage() {
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button
-                        onClick={() => setDeleteTarget(c)}
-                        aria-label={`Delete ${c.name}`}
-                        className="rounded p-1.5 text-zinc-400 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/10"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      {!isDemo && (
+                        <button
+                          onClick={() => setDeleteTarget(c)}
+                          aria-label={`Delete ${c.name}`}
+                          className="rounded p-1.5 text-zinc-400 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/10"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

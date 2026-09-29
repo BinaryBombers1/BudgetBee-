@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Bookmark, Trash2, ExternalLink } from "lucide-react";
 import { api } from "@/lib/api";
 import { useUIStore } from "@/store/ui";
+import { useAuthStore } from "@/store/auth";
 import { formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +13,8 @@ import { EmptyState, SkeletonList } from "@/components/ui/EmptyState";
 
 export default function BookmarksPage() {
   const addToast = useUIStore((s) => s.addToast);
+  const user = useAuthStore((s) => s.user);
+  const isDemo = user?.email === "demo@campuscoin.app";
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -86,12 +89,14 @@ export default function BookmarksPage() {
                   Saved {formatDate(bm.createdAt, "medium")}
                 </p>
               </div>
-              <button
-                onClick={() => remove(bm._id)}
-                className="rounded-lg p-2 text-zinc-400 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/10"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              {!isDemo && (
+                <button
+                  onClick={() => remove(bm._id)}
+                  className="rounded-lg p-2 text-zinc-400 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </motion.div>
           ))}
         </div>
