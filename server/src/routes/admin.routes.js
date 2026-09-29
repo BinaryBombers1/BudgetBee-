@@ -4,7 +4,6 @@ import {
   listUsers,
   toggleUserActive,
   resetUserPassword,
-  deleteUser,
   listDefaultCategories,
   createDefaultCategory,
   updateDefaultCategory,
@@ -30,7 +29,6 @@ router.get("/mail-probe", mailProbe);
 router.get("/users", listUsers);
 router.patch("/users/:id/toggle", toggleUserActive);
 router.patch("/users/:id/reset-password", resetUserPassword);
-router.delete("/users/:id", deleteUser);
 
 const catSchema = z.object({
   name: z.string().min(1).max(50),

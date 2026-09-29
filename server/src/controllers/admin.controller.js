@@ -115,14 +115,6 @@ export const resetUserPassword = asyncHandler(async (req, res) => {
   return sendSuccess(res, null, "Password reset by admin");
 });
 
-export const deleteUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
-  if (!user) throw ApiError.notFound("User not found");
-  if (user.role === "admin") throw ApiError.forbidden("Cannot delete admin");
-  await user.deleteOne();
-  return sendSuccess(res, null, "User deleted");
-});
-
 export const listDefaultCategories = asyncHandler(async (req, res) => {
   const categories = await Category.find({ userId: null }).sort({ type: 1, name: 1 });
   return sendSuccess(res, { categories });

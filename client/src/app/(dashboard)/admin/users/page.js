@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Search, ShieldOff, ShieldCheck, KeyRound, Trash2 } from "lucide-react";
+import { Search, ShieldOff, ShieldCheck, KeyRound } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useUIStore } from "@/store/ui";
@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Modal, ConfirmDialog } from "@/components/ui/Modal";
+import { Modal } from "@/components/ui/Modal";
 import { SkeletonList } from "@/components/ui/EmptyState";
 
 export default function AdminUsersPage() {
@@ -22,7 +22,6 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [resetTarget, setResetTarget] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
   const [newPw, setNewPw] = useState("Reset@123");
   const [saving, setSaving] = useState(false);
 
@@ -65,16 +64,6 @@ export default function AdminUsersPage() {
       addToast({ type: "error", message: e.message });
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function confirmDelete() {
-    try {
-      await api.delete(`/admin/users/${deleteTarget.id}`);
-      addToast({ type: "success", message: "User deleted" });
-      load();
-    } catch (e) {
-      addToast({ type: "error", message: e.message });
     }
   }
 
@@ -172,15 +161,6 @@ export default function AdminUsersPage() {
                 >
                   <KeyRound className="h-4 w-4" />
                 </button>
-                {u.role !== "admin" && u.id !== me?.id && (
-                  <button
-                    onClick={() => setDeleteTarget(u)}
-                    title="Delete"
-                    className="rounded-lg p-2 text-zinc-400 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/10"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
               </div>
             </motion.div>
           ))}
@@ -214,15 +194,6 @@ export default function AdminUsersPage() {
           </div>
         </form>
       </Modal>
-
-      <ConfirmDialog
-        open={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={confirmDelete}
-        title="Delete user?"
-        message={`${deleteTarget?.name} and their data will be permanently removed.`}
-        confirmLabel="Delete"
-      />
     </div>
   );
 }
