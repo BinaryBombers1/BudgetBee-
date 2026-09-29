@@ -14,10 +14,12 @@ import aiRoutes from "./ai.routes.js";
 import announcementRoutes from "./announcement.routes.js";
 import voiceRoutes from "./voice.routes.js";
 import { sendSuccess } from "../utils/response.js";
+import { isAdminPanelEnabled } from "../middlewares/auth.js";
 
 const router = Router();
 
 router.get("/health", (req, res) => sendSuccess(res, { status: "up", ts: Date.now() }, "OK"));
+router.get("/config", (req, res) => sendSuccess(res, { adminPanel: isAdminPanelEnabled() }, "OK"));
 
 router.use("/auth", authRoutes);
 router.use("/users", userRoutes);

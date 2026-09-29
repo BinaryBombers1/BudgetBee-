@@ -2,10 +2,22 @@ import { verifyAccessToken } from "../utils/token.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendError } from "../utils/response.js";
+import { env } from "../config/env.js";
 
 const DEMO_EMAILS = new Set(["demo@campuscoin.app"]);
 
 const isDemoEmail = (email) => DEMO_EMAILS.has(String(email || "").toLowerCase());
+
+/** Kill-switch: set ADMIN_PANEL_ENABLED=false to retire the whole demo admin system. */
+export const isAdminPanelEnabled = () =>
+  !["false", "0", "off", "no"].includes(String(env.ADMIN_PANEL_ENABLED ?? "").toLowerCase());
+
+export const adminPanelGuard = (req, res, next) => {
+  if (!isAdminPanelEnabled()) {
+    return sendError(res, "Admin panel is disabled", 403);
+  }
+  next();
+};
 
 export const protect = asyncHandler(async (req, res, next) => {
   const header = req.headers.authorization;

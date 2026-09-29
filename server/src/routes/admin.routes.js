@@ -15,11 +15,12 @@ import {
   mailStatus,
   mailProbe,
 } from "../controllers/admin.controller.js";
-import { protect, adminOnly } from "../middlewares/auth.js";
+import { protect, adminOnly, adminPanelGuard } from "../middlewares/auth.js";
 import { validate } from "../middlewares/validate.js";
 import { z } from "zod";
 
 const router = Router();
+router.use(adminPanelGuard);
 router.use(protect, adminOnly);
 
 router.get("/stats", getStats);

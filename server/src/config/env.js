@@ -27,6 +27,8 @@ const envSchema = z.object({
   MAIL_FROM: z.string().default("Campus Coin <no-reply@campuscoin.app>"),
   // Brevo HTTPS API — required on hosts where SMTP egress is blocked (Railway)
   BREVO_API_KEY: z.string().optional(),
+  // Kill-switch for the demo admin system ("false" hides everything admin)
+  ADMIN_PANEL_ENABLED: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

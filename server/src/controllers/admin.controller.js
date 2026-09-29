@@ -8,8 +8,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess } from "../utils/response.js";
 import { User as UserModel } from "../models/User.js";
 import { broadcastNotification } from "../services/notify.js";
-import { getMailDiagnostics } from "../services/mail.service.js";
-import { isMailConfigured } from "../services/mail.service.js";
+import { getMailDiagnostics, isMailConfigured, sendPasswordChangedEmail } from "../services/mail.service.js";
 import net from "node:net";
 
 export const mailStatus = asyncHandler(async (req, res) => {
@@ -112,6 +111,8 @@ export const resetUserPassword = asyncHandler(async (req, res) => {
   if (!user) throw ApiError.notFound("User not found");
   user.password = await User.hashPassword(newPassword || "Reset@123");
   await user.save();
+  // Best-effort security notice so the change is never silent
+  await sendPasswordChangedEmail(user.email, user.name);
   return sendSuccess(res, null, "Password reset by admin");
 });
 

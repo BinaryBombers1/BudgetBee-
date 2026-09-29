@@ -11,7 +11,7 @@ import {
   forgotPassword,
   resetPassword,
 } from "../controllers/auth.controller.js";
-import { protect } from "../middlewares/auth.js";
+import { protect, adminPanelGuard } from "../middlewares/auth.js";
 import { validate } from "../middlewares/validate.js";
 import {
   requestOtpSchema,
@@ -29,7 +29,7 @@ router.post("/request-otp", authLimiter, validate(requestOtpSchema), requestOtp)
 router.post("/verify-otp", authLimiter, validate(otpVerifySchema), verifyOtp);
 router.post("/register", authLimiter, validate(registerSchema), register);
 router.post("/login", authLimiter, validate(loginSchema), login);
-router.post("/admin-login", authLimiter, validate(loginSchema), adminLogin);
+router.post("/admin-login", adminPanelGuard, authLimiter, validate(loginSchema), adminLogin);
 router.post("/logout", logout);
 router.post("/refresh", refresh);
 router.get("/me", protect, me);

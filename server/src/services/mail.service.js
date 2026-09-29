@@ -236,3 +236,23 @@ export function sendResetEmail(to, resetUrl) {
   const text = `Reset your Campus Coin password (valid 30 minutes): ${resetUrl}\n\nIf you didn't request this, ignore this email.`;
   return send({ to, subject: "Campus Coin — reset your password", html, text });
 }
+
+export function sendPasswordChangedEmail(to, name) {
+  const who = esc(name);
+  const html = shell(
+    "Your password was changed",
+    `<p style="font-size:14px;color:#3f3f46;margin:0 0 14px;">
+       Hi ${who},
+     </p>
+     <p style="font-size:14px;color:#3f3f46;margin:0 0 14px;">
+       An administrator reset your Campus Coin password. Sign in with the
+       <strong>new password you were given</strong>.
+     </p>
+     <p style="font-size:14px;color:#b91c1c;margin:0;">
+       If this wasn&apos;t you, contact the Campus Coin team immediately.
+     </p>`,
+    "This is an automated security notice from Campus Coin, a student budget tracker."
+  );
+  const text = `Hi ${name}, an administrator reset your Campus Coin password. Sign in with the new password you were given. If this wasn't you, contact the Campus Coin team immediately.`;
+  return send({ to, subject: "Campus Coin — your password was changed", html, text });
+}

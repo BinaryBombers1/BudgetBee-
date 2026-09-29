@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useUIStore } from "@/store/ui";
 import { useAuthStore } from "@/store/auth";
+import { useAdminPanel } from "@/hooks/useAdminPanel";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
@@ -60,8 +61,9 @@ export function Sidebar() {
   const router = useRouter();
   const { sidebarOpen, toggleSidebar, theme } = useUIStore();
   const { user, logout } = useAuthStore();
+  const adminPanel = useAdminPanel();
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" && adminPanel;
   const nav = isAdmin
     ? [
         ...sections.slice(0, 3),

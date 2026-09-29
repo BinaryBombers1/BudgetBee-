@@ -10,6 +10,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { Toaster } from "@/components/ui/Toaster";
 import { ChatWidget } from "@/components/ai/ChatWidget";
 import { useSocket } from "@/hooks/useSocket";
+import { useAdminPanel } from "@/hooks/useAdminPanel";
 import { BeeLoader, MIN_LOADER_MS } from "@/components/ui/BeeLoader";
 
 export default function DashboardLayout({ children }) {
@@ -18,8 +19,10 @@ export default function DashboardLayout({ children }) {
   const { user, loading, initialized, init } = useAuthStore();
   const { connected } = useSocket();
   const sidebarOpen = useUIStore((s) => s.sidebarOpen);
+  const adminPanel = useAdminPanel();
 
   const isAdminArea = pathname === "/admin" || pathname.startsWith("/admin/");
+  const adminBlocked = user?.role !== "admin" || !adminPanel;
   const [minTimeUp, setMinTimeUp] = useState(false);
 
   useEffect(() => {
@@ -38,10 +41,10 @@ export default function DashboardLayout({ children }) {
   }, [minTimeUp, initialized, loading, user, router, pathname]);
 
   useEffect(() => {
-    if (minTimeUp && initialized && !loading && user && isAdminArea && user.role !== "admin") {
+    if (minTimeUp && initialized && !loading && user && isAdminArea && adminBlocked) {
       router.replace("/dashboard");
     }
-  }, [minTimeUp, initialized, loading, user, isAdminArea, router]);
+  }, [minTimeUp, initialized, loading, user, isAdminArea, adminBlocked, router]);
 
   const authReady = initialized && !loading && !!user;
 
@@ -50,7 +53,7 @@ export default function DashboardLayout({ children }) {
     return <BeeLoader full />;
   }
 
-  if (isAdminArea && user.role !== "admin") {
+  if (isAdminArea && adminBlocked) {
     return <BeeLoader full label="Redirecting you…" />;
   }
 
