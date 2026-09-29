@@ -9,9 +9,31 @@ import { sendSuccess } from "../utils/response.js";
 import { User as UserModel } from "../models/User.js";
 import { broadcastNotification } from "../services/notify.js";
 import { getMailDiagnostics } from "../services/mail.service.js";
+import { isMailConfigured } from "../services/mail.service.js";
+import net from "node:net";
 
 export const mailStatus = asyncHandler(async (req, res) => {
   return sendSuccess(res, getMailDiagnostics());
+});
+
+export const mailProbe = asyncHandler(async (req, res) => {
+  const host = process.env.SMTP_HOST || "smtp.gmail.com";
+  const probePort = (port) =>
+    new Promise((resolve) => {
+      const start = Date.now();
+      const sock = net.connect({ host, port, family: 4 });
+      const done = (result) => {
+        try { sock.destroy(); } catch {}
+        resolve({ port, ...result, ms: Date.now() - start });
+      };
+      const timer = setTimeout(() => done({ ok: false, error: "timeout (5s)" }), 5000);
+      sock.on("connect", () => { clearTimeout(timer); done({ ok: true }); });
+      sock.on("timeout", () => { clearTimeout(timer); done({ ok: false, error: "timeout" }); });
+      sock.on("error", (e) => { clearTimeout(timer); done({ ok: false, error: e.code || e.message }); });
+    });
+  const ports = [587, 465, 2525, 25];
+  const results = await Promise.all(ports.map(probePort));
+  return sendSuccess(res, { host, configured: isMailConfigured(), results });
 });
 
 export const getStats = asyncHandler(async (req, res) => {

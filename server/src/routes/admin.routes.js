@@ -14,6 +14,7 @@ import {
   updateAnnouncement,
   deleteAnnouncement,
   mailStatus,
+  mailProbe,
 } from "../controllers/admin.controller.js";
 import { protect, adminOnly } from "../middlewares/auth.js";
 import { validate } from "../middlewares/validate.js";
@@ -24,6 +25,7 @@ router.use(protect, adminOnly);
 
 router.get("/stats", getStats);
 router.get("/mail-status", mailStatus);
+router.get("/mail-probe", mailProbe);
 
 router.get("/users", listUsers);
 router.patch("/users/:id/toggle", toggleUserActive);
