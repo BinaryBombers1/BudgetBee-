@@ -12,13 +12,19 @@ async function main() {
   const server = http.createServer(app);
   initSocket(server);
 
-  server.listen(env.PORT, () => {
-    console.log(`🚀 Campus Coin API on http://localhost:${env.PORT}`);
-    console.log(`🔌 WebSocket on ws://localhost:${env.PORT}`);
-    console.log(`📦 Environment: ${env.NODE_ENV}`);
+  const PORT = process.env.PORT || env.PORT || 8080;
+
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Campus Coin API running on port ${PORT}`);
+    console.log(`🔌 WebSocket initialized`);
+    console.log(`📦 Environment: ${env.NODE_ENV || "production"}`);
   });
 
   process.on("SIGINT", async () => {
+    server.close(() => process.exit(0));
+  });
+
+  process.on("SIGTERM", async () => {
     server.close(() => process.exit(0));
   });
 }
