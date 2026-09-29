@@ -34,3 +34,17 @@ export const requireRole = (...roles) => (req, res, next) => {
 };
 
 export const adminOnly = requireRole("admin");
+
+const DEMO_EMAILS = new Set(["demo@campuscoin.app"]);
+
+/**
+ * Blocks sensitive/irreversible actions for the shared demo account so the
+ * public demo can never be locked out or altered for other visitors.
+ * Usage: router.patch("/password", protect, demoGuard, handler)
+ */
+export const demoGuard = (req, res, next) => {
+  if (req.user?.email && DEMO_EMAILS.has(String(req.user.email).toLowerCase())) {
+    return sendError(res, "Demo account is read-only for this action", 403);
+  }
+  next();
+};

@@ -18,6 +18,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const { user, updateUser, logout } = useAuthStore();
   const addToast = useUIStore((s) => s.addToast);
+  const isDemo = user?.email === "demo@campuscoin.app";
 
   const [form, setForm] = useState({
     name: "",
@@ -183,38 +184,46 @@ export default function ProfilePage() {
 
       <Card className="p-6">
         <CardHeader title="Change password" icon={Lock} />
-        <form onSubmit={savePassword} className="space-y-4">
-          <Input
-            label="Current password"
-            name="currentPassword"
-            type="password"
-            required
-            value={pw.currentPassword}
-            onChange={(e) => setPw({ ...pw, currentPassword: e.target.value })}
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
+        {isDemo ? (
+          <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+            The demo account is shared by everyone, so password changes are locked to keep
+            it working for the next visitor. Create your own free account to personalize
+            everything.
+          </p>
+        ) : (
+          <form onSubmit={savePassword} className="space-y-4">
             <Input
-              label="New password"
-              name="newPassword"
+              label="Current password"
+              name="currentPassword"
               type="password"
               required
-              minLength={6}
-              value={pw.newPassword}
-              onChange={(e) => setPw({ ...pw, newPassword: e.target.value })}
+              value={pw.currentPassword}
+              onChange={(e) => setPw({ ...pw, currentPassword: e.target.value })}
             />
-            <Input
-              label="Confirm new"
-              name="confirmPassword"
-              type="password"
-              required
-              value={pw.confirm}
-              onChange={(e) => setPw({ ...pw, confirm: e.target.value })}
-            />
-          </div>
-          <Button type="submit" variant="ghost" isLoading={savingPw}>
-            <Lock className="h-4 w-4" /> Update password
-          </Button>
-        </form>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Input
+                label="New password"
+                name="newPassword"
+                type="password"
+                required
+                minLength={6}
+                value={pw.newPassword}
+                onChange={(e) => setPw({ ...pw, newPassword: e.target.value })}
+              />
+              <Input
+                label="Confirm new"
+                name="confirmPassword"
+                type="password"
+                required
+                value={pw.confirm}
+                onChange={(e) => setPw({ ...pw, confirm: e.target.value })}
+              />
+            </div>
+            <Button type="submit" variant="ghost" isLoading={savingPw}>
+              <Lock className="h-4 w-4" /> Update password
+            </Button>
+          </form>
+        )}
       </Card>
     </div>
   );

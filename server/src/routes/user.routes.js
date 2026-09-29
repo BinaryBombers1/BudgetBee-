@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { getProfile, updateProfile, updatePassword } from "../controllers/user.controller.js";
-import { protect } from "../middlewares/auth.js";
+import { protect, demoGuard } from "../middlewares/auth.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess } from "../utils/response.js";
 import { z } from "zod";
@@ -26,6 +26,6 @@ const passwordSchema = z.object({
 
 router.get("/", getProfile);
 router.patch("/", validate(profileSchema), updateProfile);
-router.patch("/password", validate(passwordSchema), updatePassword);
+router.patch("/password", demoGuard, validate(passwordSchema), updatePassword);
 
 export default router;
