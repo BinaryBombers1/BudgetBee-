@@ -239,6 +239,16 @@ export default function LandingPage() {
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Works on any device
               </span>
             </motion.div>
+
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+              className="mt-6 text-xs font-medium tracking-wide text-zinc-400 dark:text-zinc-500"
+            >
+              Product by{" "}
+              <span className="font-semibold text-honey-600 dark:text-honey-400">Team Rylen</span>
+            </motion.p>
           </div>
 
           <motion.div

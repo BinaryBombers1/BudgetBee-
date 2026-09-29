@@ -60,6 +60,7 @@ function shell(title, bodyHtml, footerNote) {
     <div style="background:#18181b;padding:20px 28px;">
       <span style="font-size:18px;font-weight:700;color:#fbbf24;">&#9679; Campus Coin</span>
       <span style="font-size:12px;color:#a1a1aa;margin-left:10px;">Student Budget Tracker</span>
+      <span style="float:right;font-size:11px;color:#a1a1aa;padding-top:6px;">Product by Team Rylen</span>
     </div>
     <div style="padding:28px;">
       <h1 style="margin:0 0 14px;font-size:20px;color:#18181b;">${title}</h1>

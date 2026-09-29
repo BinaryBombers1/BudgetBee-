@@ -210,6 +210,12 @@ export function Sidebar() {
 
         {/* Footer: collapse + logout always visible */}
         <div className="shrink-0 space-y-2 border-t border-amber-500/10 p-3">
+          {sidebarOpen && (
+            <p className="px-1 text-center text-[10px] tracking-wide text-zinc-400 dark:text-zinc-600">
+              Product by{" "}
+              <span className="font-semibold text-honey-600/90 dark:text-honey-500/90">Team Rylen</span>
+            </p>
+          )}
           <button
             type="button"
             onClick={toggleSidebar}

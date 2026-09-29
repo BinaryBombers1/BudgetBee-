@@ -150,6 +150,12 @@ export function AdminSidebar() {
         </nav>
 
         <div className="shrink-0 space-y-2 border-t border-rose-500/15 p-3">
+          {sidebarOpen && (
+            <p className="px-1 text-center text-[10px] tracking-wide text-zinc-400 dark:text-zinc-600">
+              Product by{" "}
+              <span className="font-semibold text-rose-500/90 dark:text-rose-400/90">Team Rylen</span>
+            </p>
+          )}
           <Link
             href="/dashboard"
             className={cn(

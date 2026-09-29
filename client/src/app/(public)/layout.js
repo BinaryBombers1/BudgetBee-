@@ -148,7 +148,7 @@ export default function PublicLayout({ children }) {
         <div className="border-t border-zinc-200 dark:border-zinc-800">
           <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-6 py-5 text-xs text-zinc-400 sm:flex-row">
             <p>
-              © {new Date().getFullYear()} Campus Coin · Built for campus financial literacy By Rylen
+              © {new Date().getFullYear()} Campus Coin · Product by Team Rylen
             </p>
             <p>No credit card · Free for students · BDT ready</p>
           </div>

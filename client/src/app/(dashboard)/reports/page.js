@@ -554,8 +554,13 @@ export default function ReportsPage() {
               </div>
             </Card>
           )}
-        </>
-      )}
+          </>
+        )}
+
+        <p className="border-t border-zinc-200 pt-4 text-center text-[11px] tracking-wide text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
+          Campus Coin · Product by{" "}
+          <span className="font-semibold text-honey-600 dark:text-honey-400">Team Rylen</span>
+        </p>
 
       <div data-report-ui="exclude">
         <Modal open={shareOpen} onClose={() => setShareOpen(false)} title="Share report by email">

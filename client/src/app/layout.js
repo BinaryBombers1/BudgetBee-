@@ -12,7 +12,10 @@ const geistSans = localFont({
 export const metadata = {
   title: "Campus Coin — Student Budget Tracker",
   description:
-    "Campus Coin (BudgetBee) — lightweight student-first budget and expense tracker for college and university students.",
+    "Campus Coin (BudgetBee) — lightweight student-first budget and expense tracker for college and university students. Product by Team Rylen.",
+  authors: [{ name: "Team Rylen" }],
+  creator: "Team Rylen",
+  other: { author: "Team Rylen" },
 };
 
 export default function RootLayout({ children }) {

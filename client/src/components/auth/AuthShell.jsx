@@ -117,7 +117,7 @@ export function AuthShell({ children, title, subtitle, footer, showBack = true, 
           </div>
 
           <p className="relative z-10 text-xs text-zinc-600">
-            © {new Date().getFullYear()} Campus Coin · Built for campus financial literacy
+            © {new Date().getFullYear()} Campus Coin · Product by Team Rylen
           </p>
         </aside>
 
@@ -168,6 +168,10 @@ export function AuthShell({ children, title, subtitle, footer, showBack = true, 
               {footer && (
                 <div className="mt-6 text-center text-sm text-zinc-500">{footer}</div>
               )}
+
+              <p className="mt-4 text-center text-[11px] tracking-wide text-zinc-400 dark:text-zinc-600 lg:hidden">
+                Product by <span className="font-semibold text-honey-600 dark:text-honey-400">Team Rylen</span>
+              </p>
             </motion.div>
           </div>
         </main>

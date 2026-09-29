@@ -355,6 +355,10 @@ export default function HowItWorksPage() {
                 Sign in
               </Link>
             </div>
+            <p className="mt-8 text-xs tracking-wide text-zinc-400 dark:text-zinc-500">
+              Product by{" "}
+              <span className="font-semibold text-honey-600 dark:text-honey-400">Team Rylen</span>
+            </p>
           </motion.div>
         </div>
       </section>
