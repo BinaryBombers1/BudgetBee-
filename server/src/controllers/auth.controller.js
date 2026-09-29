@@ -71,7 +71,9 @@ export const requestOtp = asyncHandler(async (req, res) => {
   return sendSuccess(
     res,
     {
-      devOtp: !mail.sent && env.NODE_ENV === "development" ? otp : undefined,
+      // Reveal the code whenever mail could not be sent (any env) so
+      // registration never hard-blocks on an email outage.
+      devOtp: !mail.sent ? otp : undefined,
       expiresInMin: 10,
     },
     "Verification code sent to your email"

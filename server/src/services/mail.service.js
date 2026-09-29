@@ -24,9 +24,50 @@ export function getMailDiagnostics() {
     userSet: Boolean(env.SMTP_USER),
     passSet: Boolean(env.SMTP_PASS),
     from: env.MAIL_FROM || null,
+    brevo: Boolean(env.BREVO_API_KEY),
+    transport: env.BREVO_API_KEY ? "brevo" : isMailConfigured() ? "smtp" : "none",
     connectHost: lastConnectHost,
     lastAttempt,
   };
+}
+
+function parseFromHeader(raw) {
+  const m = String(raw || "").match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/);
+  if (m) return { name: m[1].trim() || "Campus Coin", email: m[2].trim() };
+  return { email: String(raw || "").trim() };
+}
+
+async function sendViaBrevo({ to, subject, html, text, attachments }) {
+  const body = {
+    sender: parseFromHeader(env.MAIL_FROM),
+    to: [{ email: to }],
+    subject,
+    htmlContent: html,
+    ...(text ? { textContent: text } : {}),
+    ...(attachments && attachments.length
+      ? {
+          attachment: attachments.map((a) => ({
+            name: a.filename,
+            content: Buffer.from(a.content).toString("base64"),
+          })),
+        }
+      : {}),
+  };
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": env.BREVO_API_KEY,
+      "Content-Type": "application/json",
+      accept: "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const errText = (await res.text().catch(() => "")).slice(0, 300);
+    throw new Error(`Brevo ${res.status}: ${errText}`);
+  }
+  const data = await res.json().catch(() => ({}));
+  return data.messageId || null;
 }
 
 /** SMTP is optional — without SMTP_HOST the app keeps its dev fallback (console + dev payload). */
@@ -62,20 +103,33 @@ async function getTransporter() {
 }
 
 async function send({ to, subject, html, text, attachments }) {
+  const stamp = () => new Date().toISOString();
+  if (env.BREVO_API_KEY) {
+    try {
+      const messageId = await sendViaBrevo({ to, subject, html, text, attachments });
+      console.log(`[MAIL] (brevo) "${subject}" -> ${to}${messageId ? ` id=${messageId}` : ""}`);
+      lastAttempt = { at: stamp(), subject, to: maskEmail(to), transport: "brevo", sent: true, reason: null };
+      return { sent: true };
+    } catch (err) {
+      console.error(`[MAIL FAILED] (brevo) "${subject}" -> ${to}: ${err.message}`);
+      lastAttempt = { at: stamp(), subject, to: maskEmail(to), transport: "brevo", sent: false, reason: err.message };
+      return { sent: false, reason: err.message };
+    }
+  }
   if (!isMailConfigured()) {
     console.log(`[MAIL SKIP] SMTP not configured (SMTP_HOST missing) — "${subject}" not sent`);
-    lastAttempt = { at: new Date().toISOString(), subject, to: maskEmail(to), sent: false, reason: "SMTP not configured (SMTP_HOST missing)" };
+    lastAttempt = { at: stamp(), subject, to: maskEmail(to), transport: "none", sent: false, reason: "SMTP not configured (SMTP_HOST missing)" };
     return { sent: false, reason: "SMTP not configured" };
   }
   try {
     const t = await getTransporter();
     await t.sendMail({ from: env.MAIL_FROM, to, subject, html, text, attachments });
     console.log(`[MAIL] "${subject}" -> ${to}`);
-    lastAttempt = { at: new Date().toISOString(), subject, to: maskEmail(to), sent: true, reason: null };
+    lastAttempt = { at: stamp(), subject, to: maskEmail(to), transport: "smtp", sent: true, reason: null };
     return { sent: true };
   } catch (err) {
     console.error(`[MAIL FAILED] "${subject}" -> ${to}: ${err.message}`);
-    lastAttempt = { at: new Date().toISOString(), subject, to: maskEmail(to), sent: false, reason: err.message };
+    lastAttempt = { at: stamp(), subject, to: maskEmail(to), transport: "smtp", sent: false, reason: err.message };
     return { sent: false, reason: err.message };
   }
 }

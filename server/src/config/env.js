@@ -25,6 +25,8 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   MAIL_FROM: z.string().default("Campus Coin <no-reply@campuscoin.app>"),
+  // Brevo HTTPS API — required on hosts where SMTP egress is blocked (Railway)
+  BREVO_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
