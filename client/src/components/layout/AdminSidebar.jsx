@@ -13,6 +13,7 @@ import {
   Shield,
   ArrowLeft,
   Activity,
+  MessageSquare,
 } from "lucide-react";
 import { useUIStore } from "@/store/ui";
 import { useAuthStore } from "@/store/auth";
@@ -27,6 +28,7 @@ const sections = [
       { href: "/admin/users", label: "Users", icon: Users },
       { href: "/admin/categories", label: "Categories", icon: Tags },
       { href: "/admin/announcements", label: "Announcements", icon: Megaphone },
+      { href: "/admin/feedback", label: "Feedback", icon: MessageSquare },
     ],
   },
 ];

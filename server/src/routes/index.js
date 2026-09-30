@@ -12,6 +12,7 @@ import notificationRoutes from "./notification.routes.js";
 import adminRoutes from "./admin.routes.js";
 import aiRoutes from "./ai.routes.js";
 import announcementRoutes from "./announcement.routes.js";
+import feedbackRoutes from "./feedback.routes.js";
 import voiceRoutes from "./voice.routes.js";
 import { sendSuccess } from "../utils/response.js";
 import { isAdminPanelEnabled } from "../middlewares/auth.js";
@@ -34,6 +35,7 @@ router.use("/notifications", notificationRoutes);
 router.use("/admin", adminRoutes);
 router.use("/ai", aiRoutes);
 router.use("/announcements", announcementRoutes);
+router.use("/feedback", feedbackRoutes);
 router.use("/voice", voiceRoutes);
 
 export default router;

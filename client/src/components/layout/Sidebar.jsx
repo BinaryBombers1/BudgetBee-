@@ -18,6 +18,7 @@ import {
   Sparkles,
   Upload,
   LogOut,
+  MessageSquare,
 } from "lucide-react";
 import { useUIStore } from "@/store/ui";
 import { useAuthStore } from "@/store/auth";
@@ -52,7 +53,10 @@ const sections = [
   },
   {
     label: "Account",
-    items: [{ href: "/profile", label: "Profile", icon: User }],
+    items: [
+      { href: "/profile", label: "Profile", icon: User },
+      { href: "/feedback", label: "Feedback", icon: MessageSquare },
+    ],
   },
 ];
 

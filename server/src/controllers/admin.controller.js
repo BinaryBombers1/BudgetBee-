@@ -3,6 +3,11 @@ import { User } from "../models/User.js";
 import { Transaction } from "../models/Transaction.js";
 import { Category } from "../models/Category.js";
 import { Announcement } from "../models/Announcement.js";
+import { Budget } from "../models/Budget.js";
+import { Bookmark } from "../models/Bookmark.js";
+import { Notification } from "../models/Notification.js";
+import { Insight } from "../models/Insight.js";
+import { Feedback } from "../models/Feedback.js";
 import { ApiError } from "../utils/apiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { sendSuccess } from "../utils/response.js";
@@ -114,6 +119,26 @@ export const resetUserPassword = asyncHandler(async (req, res) => {
   // Best-effort security notice so the change is never silent
   await sendPasswordChangedEmail(user.email, user.name);
   return sendSuccess(res, null, "Password reset by admin");
+});
+
+export const deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) throw ApiError.notFound("User not found");
+  if (user.role === "admin") throw ApiError.forbidden("Cannot delete an admin account");
+  if (String(user._id) === String(req.user.id)) throw ApiError.forbidden("You cannot delete your own account");
+
+  const uid = user._id;
+  await Promise.all([
+    Transaction.deleteMany({ userId: uid }),
+    Category.deleteMany({ userId: uid }),
+    Budget.deleteMany({ userId: uid }),
+    Bookmark.deleteMany({ userId: uid }),
+    Notification.deleteMany({ userId: uid }),
+    Insight.deleteMany({ userId: uid }),
+    Feedback.deleteMany({ userId: uid }),
+  ]);
+  await user.deleteOne();
+  return sendSuccess(res, null, "User and their data deleted");
 });
 
 export const listDefaultCategories = asyncHandler(async (req, res) => {

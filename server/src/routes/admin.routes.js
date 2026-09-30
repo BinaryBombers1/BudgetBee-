@@ -4,6 +4,7 @@ import {
   listUsers,
   toggleUserActive,
   resetUserPassword,
+  deleteUser,
   listDefaultCategories,
   createDefaultCategory,
   updateDefaultCategory,
@@ -15,6 +16,11 @@ import {
   mailStatus,
   mailProbe,
 } from "../controllers/admin.controller.js";
+import {
+  listAllFeedback,
+  replyFeedback,
+  deleteFeedback,
+} from "../controllers/feedback.controller.js";
 import { protect, adminOnly, adminPanelGuard } from "../middlewares/auth.js";
 import { validate } from "../middlewares/validate.js";
 import { z } from "zod";
@@ -30,6 +36,16 @@ router.get("/mail-probe", mailProbe);
 router.get("/users", listUsers);
 router.patch("/users/:id/toggle", toggleUserActive);
 router.patch("/users/:id/reset-password", resetUserPassword);
+router.delete("/users/:id", deleteUser);
+
+const replySchema = z.object({
+  reply: z.string().trim().max(1000).optional(),
+  status: z.enum(["new", "read", "resolved"]).optional(),
+});
+
+router.get("/feedback", listAllFeedback);
+router.patch("/feedback/:id", validate(replySchema), replyFeedback);
+router.delete("/feedback/:id", deleteFeedback);
 
 const catSchema = z.object({
   name: z.string().min(1).max(50),
