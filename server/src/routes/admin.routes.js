@@ -5,6 +5,8 @@ import {
   toggleUserActive,
   resetUserPassword,
   deleteUser,
+  listUserTransactions,
+  deleteAnyTransaction,
   listDefaultCategories,
   createDefaultCategory,
   updateDefaultCategory,
@@ -36,6 +38,8 @@ router.get("/mail-probe", mailProbe);
 router.get("/users", listUsers);
 router.patch("/users/:id/toggle", toggleUserActive);
 router.patch("/users/:id/reset-password", resetUserPassword);
+router.get("/users/:id/transactions", listUserTransactions);
+router.delete("/transactions/:id", deleteAnyTransaction);
 router.delete("/users/:id", deleteUser);
 
 const replySchema = z.object({

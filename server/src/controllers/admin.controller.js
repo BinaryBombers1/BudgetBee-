@@ -121,6 +121,35 @@ export const resetUserPassword = asyncHandler(async (req, res) => {
   return sendSuccess(res, null, "Password reset by admin");
 });
 
+export const listUserTransactions = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) throw ApiError.notFound("User not found");
+  const { page = 1, limit = 50 } = req.query;
+  const pageNum = Math.max(1, parseInt(page));
+  const limitNum = Math.min(100, parseInt(limit) || 50);
+
+  const [transactions, total] = await Promise.all([
+    Transaction.find({ userId: user._id })
+      .sort({ date: -1, createdAt: -1 })
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum)
+      .populate("categoryId", "name type icon color"),
+    Transaction.countDocuments({ userId: user._id }),
+  ]);
+
+  return sendSuccess(res, {
+    user: { id: user._id, name: user.name, email: user.email },
+    transactions,
+    pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+  });
+});
+
+export const deleteAnyTransaction = asyncHandler(async (req, res) => {
+  const tx = await Transaction.findByIdAndDelete(req.params.id);
+  if (!tx) throw ApiError.notFound("Transaction not found");
+  return sendSuccess(res, null, "Transaction deleted");
+});
+
 export const deleteUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) throw ApiError.notFound("User not found");

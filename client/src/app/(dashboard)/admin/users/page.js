@@ -2,11 +2,11 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Search, ShieldOff, ShieldCheck, KeyRound, Trash2 } from "lucide-react";
+import { Search, ShieldOff, ShieldCheck, KeyRound, Trash2, Receipt } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useUIStore } from "@/store/ui";
-import { formatDate, cn } from "@/lib/utils";
+import { formatDate, formatMoney, cn } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -23,6 +23,10 @@ export default function AdminUsersPage() {
   const [q, setQ] = useState("");
   const [resetTarget, setResetTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [txUser, setTxUser] = useState(null);
+  const [txList, setTxList] = useState([]);
+  const [txLoading, setTxLoading] = useState(false);
+  const [txDelete, setTxDelete] = useState(null);
   const [newPw, setNewPw] = useState("Reset@123");
   const [saving, setSaving] = useState(false);
 
@@ -59,6 +63,31 @@ export default function AdminUsersPage() {
       await api.delete(`/admin/users/${deleteTarget.id}`);
       addToast({ type: "success", message: "User deleted" });
       load();
+    } catch (e) {
+      addToast({ type: "error", message: e.message });
+    }
+  }
+
+  async function openTransactions(u) {
+    setTxUser(u);
+    setTxList([]);
+    setTxLoading(true);
+    try {
+      const res = await api.get(`/admin/users/${u.id}/transactions`);
+      setTxList(res.data.transactions);
+    } catch (e) {
+      addToast({ type: "error", message: e.message });
+      setTxUser(null);
+    } finally {
+      setTxLoading(false);
+    }
+  }
+
+  async function confirmDeleteTx() {
+    try {
+      await api.delete(`/admin/transactions/${txDelete._id}`);
+      setTxList((list) => list.filter((t) => t._id !== txDelete._id));
+      addToast({ type: "success", message: "Transaction deleted" });
     } catch (e) {
       addToast({ type: "error", message: e.message });
     }
@@ -172,6 +201,13 @@ export default function AdminUsersPage() {
                 >
                   <KeyRound className="h-4 w-4" />
                 </button>
+                <button
+                  onClick={() => openTransactions(u)}
+                  title="View transactions"
+                  className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-100 hover:text-blue-600 dark:hover:bg-zinc-800"
+                >
+                  <Receipt className="h-4 w-4" />
+                </button>
                 {u.role !== "admin" && u.id !== me?.id && (
                   <button
                     onClick={() => setDeleteTarget(u)}
@@ -214,6 +250,66 @@ export default function AdminUsersPage() {
           </div>
         </form>
       </Modal>
+
+      <Modal
+        open={!!txUser}
+        onClose={() => setTxUser(null)}
+        title={`Transactions — ${txUser?.name}`}
+        width="max-w-2xl"
+      >
+        {txLoading ? (
+          <SkeletonList count={4} />
+        ) : txList.length === 0 ? (
+          <p className="py-6 text-center text-sm text-zinc-400">No transactions yet.</p>
+        ) : (
+          <div className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
+            {txList.map((t) => (
+              <div
+                key={t._id}
+                className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/60"
+              >
+                <span
+                  className={cn(
+                    "rounded px-1.5 py-0.5 text-[10px] font-bold uppercase",
+                    t.type === "income"
+                      ? "bg-emerald-500/15 text-emerald-600"
+                      : "bg-rose-500/15 text-rose-500"
+                  )}
+                >
+                  {t.type}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">
+                    {t.note || <span className="text-zinc-400 italic">no note</span>}
+                  </p>
+                  <p className="text-[11px] text-zinc-400">
+                    {t.categoryId?.name || "Uncategorized"} · {formatDate(t.date, "time")}
+                  </p>
+                </div>
+                <span className="text-sm font-semibold tabular-nums">
+                  {formatMoney(t.amount, txUser?.currency || "BDT")}
+                </span>
+                <button
+                  onClick={() => setTxDelete(t)}
+                  title="Delete transaction"
+                  className="rounded-lg p-1.5 text-zinc-400 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
+
+      <ConfirmDialog
+        open={!!txDelete}
+        onClose={() => setTxDelete(null)}
+        onConfirm={confirmDeleteTx}
+        title="Delete transaction?"
+        message={`"${txDelete?.note || "This transaction"}" (${formatMoney(txDelete?.amount || 0, txUser?.currency || "BDT")}) will be permanently removed.`}
+        confirmLabel="Delete"
+      />
 
       <ConfirmDialog
         open={!!deleteTarget}
