@@ -28,7 +28,6 @@ import { ConfirmDialog } from "@/components/ui/Modal";
 
 export default function TransactionsPage() {
   const user = useAuthStore((s) => s.user);
-  const isDemo = user?.email === "demo@campuscoin.app";
   const addToast = useUIStore((s) => s.addToast);
   const currency = user?.currency || "BDT";
 
@@ -251,14 +250,12 @@ export default function TransactionsPage() {
                   >
                     <Pencil className="h-4 w-4" />
                   </Link>
-                  {!isDemo && (
-                    <button
-                      onClick={() => setDeleteTarget(tx)}
-                      className="rounded-lg p-1.5 text-zinc-400 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setDeleteTarget(tx)}
+                    className="rounded-lg p-1.5 text-zinc-400 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </motion.div>
             ))}

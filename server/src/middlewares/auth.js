@@ -37,9 +37,14 @@ export const protect = asyncHandler(async (req, res, next) => {
     const decoded = verifyAccessToken(token);
     req.user = { id: decoded.sub, role: decoded.role, email: decoded.email };
 
-    // Shared demo account may browse and add data, but never delete anything.
+    // Shared demo account: never deletes anything — except its own transactions,
+    // so visitors can clean up junk entries they added themselves.
     if (req.method === "DELETE" && isDemoEmail(decoded.email)) {
-      return sendError(res, "Demo account is read-only for this action", 403);
+      const path = String(req.originalUrl || "").split("?")[0];
+      const ownTxDelete = /^\/api\/v1\/transactions\/[a-f0-9]{24}$/i.test(path);
+      if (!ownTxDelete) {
+        return sendError(res, "Demo account is read-only for this action", 403);
+      }
     }
     next();
   } catch {
@@ -59,7 +64,7 @@ export const adminOnly = requireRole("admin");
 /**
  * Blocks sensitive/irreversible actions for the shared demo account so the
  * public demo can never be locked out or altered for other visitors.
- * (DELETE requests are already blocked globally inside `protect`.)
+ * (DELETE requests are blocked inside `protect`, except the demo's own transactions.)
  * Usage: router.patch("/password", protect, demoGuard, handler)
  */
 export const demoGuard = (req, res, next) => {
