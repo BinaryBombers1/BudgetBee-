@@ -18,8 +18,7 @@ export function createRecognition({ lang, onInterim, onFinal, onError }) {
   let rec = null;
   let quietTimer = null;
   let silenceTimer = null;
-  let finals = [];
-  let interim = "";
+  let slots = []; // results stored BY INDEX — re-delivered events overwrite, never duplicate
   let canceled = false;
   let hadError = false;
 
@@ -31,8 +30,8 @@ export function createRecognition({ lang, onInterim, onFinal, onError }) {
   }
 
   function transcript() {
-    return [...finals, interim]
-      .map((s) => s.trim())
+    return slots
+      .map((s) => (s || "").trim())
       .filter(Boolean)
       .join(" ");
   }
@@ -66,19 +65,19 @@ export function createRecognition({ lang, onInterim, onFinal, onError }) {
       rec.continuous = true;
       rec.interimResults = true;
       rec.maxAlternatives = 1;
-      finals = [];
-      interim = "";
+      slots = [];
       canceled = false;
       hadError = false;
       armQuiet();
 
       rec.onresult = (event) => {
         clearTimeout(quietTimer);
+        // Write each result to its fixed index. Some browsers re-deliver the
+        // whole results list (resultIndex stays 0) — overwriting by index makes
+        // that idempotent instead of appending duplicates.
         for (let i = event.resultIndex; i < event.results.length; i += 1) {
           const r = event.results[i];
-          const text = (r[0] && r[0].transcript) || "";
-          if (r.isFinal) finals.push(text);
-          else interim = text;
+          slots[i] = (r[0] && r[0].transcript) || "";
         }
         onInterim?.(transcript());
         armSilence();
